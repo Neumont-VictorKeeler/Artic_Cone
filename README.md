@@ -6,3 +6,14 @@ For UI development we are using React and Tailwind for styling.
 For Routing we are using the React Router to better protect routes.
 We plan to use a Whiteboard or Canvas Library called Konva.js.
 We plan to use ShadCN to accelerate the Frontend Development.
+## Here are Necessary Commands:
+```
+Used to update local project:
+npm i or pnpm i
+Used to Run the Developement Project:
+pnpm dev
+Used to build the project for deployment:
+pnpm build
+Used to start built project:
+pnpm start
+```
