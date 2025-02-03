@@ -1,17 +1,17 @@
-import React from 'react';
-import { Stage, Layer, Rect } from 'react-konva';
+import { Stage, Layer, Circle } from 'react-konva';
 
-const MyCanvas = () => {
+function Canvas(props) {
   return (
     <Stage width={window.innerWidth} height={window.innerHeight}>
       <Layer>
-        <Rect x={20} y={20} width={100} height={50} fill="red" />
+        <Circle x={200} y={100} radius={500} fill="green" />
       </Layer>
     </Stage>
   );
-};
+}
 
-export default MyCanvas;
+export default Canvas;
+
 /*To import into a page please use this code:
 import dynamic from 'next/dynamic';
 
