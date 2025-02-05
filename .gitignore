@@ -400,3 +400,7 @@ FodyWeavers.xsd
 *.sln.iml
 package-lock.json
 package.json
+.idea/encodings.xml
+.idea/discord.xml
+.idea/vcs.xml
+.idea/indexLayout.xml
