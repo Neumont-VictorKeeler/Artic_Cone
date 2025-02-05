@@ -2,15 +2,28 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button } from "@/components/ui/button"; // Import Button
+import { Input } from "@/components/ui/input"; // Import Input
 
 export default function Home() {
     const router = useRouter();
     const [lobbyCode, setLobbyCode] = useState('');
     const [error, setError] = useState('');
-    
+
+    const createLobby = () => {
+        // Generate lobby code only on the client
+        if (typeof window !== 'undefined') {
+            const newLobbyCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+            router.push(`/lobby/${newLobbyCode}`);
+        }
+    };
 
     return (
-        <main className="flex flex-col items-center justify-center h-screen bg-background text-foreground">
+        <main
+            suppressHydrationWarning
+            className="flex flex-col items-center justify-center h-screen bg-background text-foreground"
+        >
+            {/* Logo Section */}
             <div className="flex flex-col items-center">
                 <img
                     src="/articcone-logo.png"
@@ -20,28 +33,42 @@ export default function Home() {
                 <h1 className="text-4xl font-bold text-primary">ARTIC CONE</h1>
             </div>
 
-            <div className="mt-8 flex flex-col items-center">
-                <input
+            {/* Input and Buttons Section */}
+            <div className="mt-8 flex flex-col items-center space-y-4">
+                {/* Input Field */}
+                <Input
                     type="text"
                     placeholder="Enter Lobby Code"
                     value={lobbyCode}
                     onChange={(e) => setLobbyCode(e.target.value)}
-                    className="text-center text-lg border-2 border-input rounded-lg px-4 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="text-center"
                 />
-                {error && <p className="text-red-500">{error}</p>}
+                {error && (
+                    <p className="text-red-500 font-medium text-center mt-2">
+                        {error}
+                    </p>
+                )}
+
+                {/* Buttons */}
                 <div className="flex space-x-4">
-                    <button
-                        // onClick={joinLobby}
-                        className="bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90"
+                    <Button
+                        variant="default"
+                        onClick={() => {
+                            if (!lobbyCode) {
+                                setError('Please enter a lobby code.');
+                                return;
+                            }
+                            router.push(`/lobby/${lobbyCode}`);
+                        }}
                     >
                         Join Lobby
-                    </button>
-                    <button
-                        // onClick={createLobby}
-                        className="bg-secondary text-secondary-foreground px-6 py-2 rounded-lg hover:bg-secondary/90"
+                    </Button>
+                    <Button
+                        variant="secondary"
+                        onClick={createLobby}
                     >
                         Create Lobby
-                    </button>
+                    </Button>
                 </div>
             </div>
         </main>
