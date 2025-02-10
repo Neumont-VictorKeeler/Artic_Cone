@@ -30,7 +30,7 @@ export default function Home() {
                     alt="Artic Cone Logo"
                     className="w-full max-w-[500px] h-auto mb-4"
                 />
-                <h1 className="text-4xl font-bold text-primary">ARTIC CONE</h1>
+                <h1 className="text-4xl font-bold text-primary">ARCTIC CONE</h1>
             </div>
 
             {/* Input and Buttons Section */}
