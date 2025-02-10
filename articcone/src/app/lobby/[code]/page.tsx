@@ -1,38 +1,78 @@
 ﻿'use client';
 
-import React, { useState } from 'react';
-import { useParams } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 export default function Lobby() {
-    const { code } = useParams(); // Get the lobby code from the URL
+    const params = useParams();
+    const code = params?.code as string;
+    const router = useRouter();
     const [players, setPlayers] = useState<string[]>([]);
     const [playerName, setPlayerName] = useState('');
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(true);
 
-    const joinLobby = () => {
+    useEffect(() => {
+        if (!code) return;
+
+        const checkLobbyExists = async () => {
+            try {
+                const response = await fetch(`/api/lobby?code=${code}`);
+                const data = await response.json();
+
+                if (!data.exists) {
+                    router.push('/'); // Redirect if lobby doesn't exist
+                } else {
+                    setPlayers(data.players || []);
+                }
+            } catch {
+                setError('Error fetching lobby.');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        checkLobbyExists();
+    }, [code, router]);
+
+    const joinLobby = async () => {
         if (!playerName.trim()) {
             setError('Player name is required!');
             return;
         }
-        if (players.includes(playerName)) {
-            setError('Player name already exists!');
-            return;
+
+        try {
+            const response = await fetch('/api/lobby', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code, playerName, action: "join" }),
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                setPlayers(data.players);
+                setPlayerName('');
+                setError('');
+            } else {
+                setError(data.error || 'Error joining lobby.');
+            }
+        } catch {
+            setError('Error joining lobby.');
         }
-        setPlayers((prev) => [...prev, playerName]);
-        setPlayerName('');
-        setError('');
     };
+
+    if (loading) {
+        return <p>Loading...</p>;
+    }
 
     return (
         <main className="flex flex-col items-center justify-center h-screen bg-background text-foreground space-y-6">
-            {/* Lobby Code Section */}
             <h1 className="text-2xl font-bold">
                 Lobby Code: <span className="text-primary">{code}</span>
             </h1>
 
-            {/* Player Name Input Section */}
             <div className="flex flex-col items-center space-y-4">
                 <Input
                     type="text"
@@ -47,7 +87,6 @@ export default function Lobby() {
                 {error && <p className="text-red-500 text-sm">{error}</p>}
             </div>
 
-            {/* Player List Section */}
             <div className="w-64 bg-card rounded-lg p-4 shadow-md">
                 <h2 className="text-lg font-semibold mb-2">Players in the Lobby:</h2>
                 <ul className="list-disc list-inside space-y-1">
