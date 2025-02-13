@@ -93,13 +93,46 @@ export default function Lobby() {
     //  Assign a new host when the host leaves
     const assignNewHost = async () => {
         if (players.length <= 1) return;
-        const nonHostPlayers = players.filter((player) => !player.isHost);
-        if (nonHostPlayers.length === 0) return;
 
+        // Find the current host
+        const currentHost = players.find((player) => player.isHost);
+        const nonHostPlayers = players.filter((player) => !player.isHost);
+        if (nonHostPlayers.length == 0) return;
+
+        // Select a new host randomly
         const newHost = nonHostPlayers[Math.floor(Math.random() * nonHostPlayers.length)];
-        await update(ref(db, `lobbies/${code}/players/${newHost.id}`), { isHost: true });
+
+        const updates: Record<string, any> = {};
+
+        // Remove host role from the previous host
+        if (currentHost) {
+            updates[`lobbies/${code}/players/${currentHost.id}/isHost`] = false;
+        }
+
+        // Assign host role to the new host
+        updates[`lobbies/${code}/players/${newHost.id}/isHost`] = true;
+
+        // Update Firebase
+        await update(ref(db), updates);
+
+        // Manually update state to trigger UI change
+        setPlayers((prevPlayers) =>
+            prevPlayers.map((player) => ({
+                ...player,
+                isHost: player.id === newHost.id, // Only new host should have isHost: true
+            }))
+        );
+
+        // Update the local `isHost` state for the current user
+        if (playerId === currentHost?.id) {
+            setIsHost(false);
+        } else if (playerId === newHost.id) {
+            setIsHost(true);
+        }
+
         toast.success(`${newHost.name} is now the host!`);
     };
+
 
     //  Remove player if they close the tab
     const handleTabClose = async () => {
@@ -156,8 +189,14 @@ export default function Lobby() {
 
     const startGame = async () => {
         if (!isHost || !code) return;
+        // if (players.length < 1) {
+        //     toast.error("Not enough players to start the game.");
+        //     return;
+        // }
 
         await update(ref(db, `lobbies/${code}`), { gameState: "started" });
+
+        router.push(`/gamePage/`);
     };
 
 
@@ -183,15 +222,18 @@ export default function Lobby() {
 
                     <div className="flex flex-col items-center w-full max-w-md space-y-2">
                         {players.map((player) => (
-                            <div key={player.id} className="flex justify-between w-full p-3 border rounded-lg shadow-sm bg-card">
+                            <div key={player.id}
+                                 className="flex justify-between w-full p-3 border rounded-lg shadow-sm bg-card">
                                 <span className="text-lg">{player.name} {player.isHost && "👑"}</span>
 
                                 {isHost && player.id !== playerId && (
                                     <div className="flex space-x-2">
-                                        <Button size="sm" variant="destructive" onClick={() => remove(ref(db, `lobbies/${code}/players/${player.id}`))}>
+                                        <Button size="sm" variant="destructive"
+                                                onClick={() => remove(ref(db, `lobbies/${code}/players/${player.id}`))}>
                                             Kick
                                         </Button>
-                                        <Button size="sm" variant="outline" onClick={() => update(ref(db, `lobbies/${code}/players/${player.id}`), { isHost: true })}>
+                                        <Button size="sm" variant="outline"
+                                                onClick={() => update(ref(db, `lobbies/${code}/players/${player.id}`), {isHost: true})}>
                                             Make Host
                                         </Button>
                                     </div>
@@ -227,5 +269,4 @@ export default function Lobby() {
             )}
         </main>
     );
-   
 }

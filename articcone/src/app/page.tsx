@@ -197,7 +197,7 @@ export default function Home() {
                     placeholder="Enter Your Name"
                     value={playerName}
                     onChange={(e) => setPlayerName(e.target.value)}
-                    maxLength={10}
+                    maxLength={20}
                     className="text-center"
                 />
                 <Input
