@@ -103,23 +103,20 @@ filledImage.onload = () => {
       const index = (py * width + px) * 4;
       vistited.add(index);
 
-      // Prevent out-of-bounds errors
       if (px < 0 || py < 0 || px >= width || py >= height) continue;
-  
-      // If color matches target, replace with fillColor
+
       if (!colorMatch(pixels, index, targetColor)) {
         setColorAt(pixels, index, fillColor);
-  
-        // Push neighboring pixels (left, right, top, bottom)
+
         stack.push([px - 1, py]);
         stack.push([px + 1, py]);
         stack.push([px, py - 1]);
         stack.push([px, py + 1]);
+      }else{
+        break;
       }
     }
   };
-  
-  // Helper functions
   const colorMatch = (pixels: { [x: string]: any; }, index: number, targetColor: Uint8ClampedArray<ArrayBufferLike>) => {
     return (
       pixels[index] === targetColor[0] &&
