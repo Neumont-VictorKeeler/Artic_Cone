@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { db } from "@/lib/firebase";
-import { ref, get, set, push } from "firebase/database";
+import {ref, get, set, push, remove} from "firebase/database";
+
 
 export default function Home() {
     const router = useRouter();
@@ -95,26 +96,29 @@ export default function Home() {
             setError("Error checking lobby.");
         }
     };
-    
+
     const cleanupEmptyLobbies = async () => {
         try {
             const lobbiesRef = ref(db, "lobbies");
             const snapshot = await get(lobbiesRef);
-            
-            if(snapshot.exists()){
+
+            if (snapshot.exists()) {
                 const lobbies = snapshot.val();
-                for (const lobbyCode in lobbies){
+                for (const lobbyCode in lobbies) {
                     const players = lobbies[lobbyCode].players;
-                    if(!players || Object.keys(players).length === 0){
-                        await set(ref(db, `lobbies/${lobbyCode}`), null);
-                        console.log(`Deleted empty lobby: ${lobbyCode}`);
+
+                    // If no players exist, delete the lobby
+                    if (!players || Object.keys(players).length === 0) {
+                        await remove(ref(db, `lobbies/${lobbyCode}`));
+                        console.log(`🗑️ Deleted empty lobby: ${lobbyCode}`);
                     }
                 }
             }
-        } catch (error){
-            console.error("Error cleaning up empty lobbies:", error);
+        } catch (error) {
+            console.error(" Error cleaning up empty lobbies:", error);
         }
-    }
+    };
+
 
     const createLobby = async () => {
         if (!playerName.trim()) {
@@ -184,12 +188,15 @@ export default function Home() {
 
 
     return (
-        <main className="flex flex-col items-center justify-center h-screen bg-background text-foreground">
+
+        <main
+            className="flex flex-col items-center justify-center h-screen bg-gradient-to-r from-blue-300 via-green-900 to-blue-300 text-foreground">
             <div className="flex flex-col items-center">
-                <img src="/articcone-logo.png" alt="Artic Cone Logo" className="w-full max-w-[500px] h-auto mb-4" />
-                <h1 className="text-4xl font-bold text-primary">ARTIC CONE</h1>
+                <img src="/articcone-logo.png" alt="Artic Cone Logo" className="w-full max-w-[500px] h-auto mb-4"/>
+                <h1 className="text-4xl font-bold bg-gradient-to-b from-white to-blue-300 bg-clip-text text-transparent ">
+                    ARTIC CONE
+                </h1>
             </div>
-            
 
             <div className="mt-8 flex flex-col items-center space-y-4">
                 <Input
@@ -198,7 +205,7 @@ export default function Home() {
                     value={playerName}
                     onChange={(e) => setPlayerName(e.target.value)}
                     maxLength={20}
-                    className="text-center"
+                    className="text-center bg-gradient-to-b from-white to-blue-100 shadow-md border border-gray-300 focus:ring-2 focus:ring-blue-400 text-amber-950"
                 />
                 <Input
                     type="text"
@@ -206,7 +213,7 @@ export default function Home() {
                     value={lobbyCode}
                     onChange={(e) => setLobbyCode(e.target.value)}
                     maxLength={10}
-                    className="text-center"
+                    className="text-center bg-gradient-to-b from-white to-blue-100 shadow-md border border-gray-300 focus:ring-2 focus:ring-blue-400 text-amber-950"
                 />
 
                 <div className="h-6 flex items-center">
@@ -214,22 +221,34 @@ export default function Home() {
                 </div>
 
                 {countdown !== null && (
-                    <p className="text-yellow-500 text-sm">You must wait {countdown} seconds before creating another lobby.</p>
+                    <p className="text-yellow-500 text-sm">You must wait {countdown} seconds before creating another
+                        lobby.</p>
                 )}
 
                 {kickCountdown !== null && (
-                    <p className="text-red-500 text-sm">You were kicked before! Please wait {kickCountdown} seconds before rejoining.</p>
+                    <p className="text-red-500 text-sm">You were kicked before! Please wait {kickCountdown} seconds
+                        before rejoining.</p>
                 )}
 
                 <div className="flex space-x-4">
-                    <Button variant="default" onClick={checkAndJoinLobby}>
+                    <Button
+                        variant="default"
+                        onClick={checkAndJoinLobby}
+                        className="bg-gradient-to-b from-white to-blue-100 hover:from-blue-100 hover:to-white shadow-md border border-gray-300 text-amber-950"
+                    >
                         Join Lobby
                     </Button>
-                    <Button variant="secondary" onClick={createLobby} disabled={countdown !== null}>
+                    <Button
+                        variant="secondary"
+                        onClick={createLobby}
+                        disabled={countdown !== null}
+                        className="bg-gradient-to-b from-white to-blue-100 hover:from-blue-100 hover:to-white shadow-md border border-gray-300 text-amber-950 disabled:opacity-50"
+                    >
                         Create Lobby
                     </Button>
                 </div>
             </div>
         </main>
-    );
+)
+    ;
 }
