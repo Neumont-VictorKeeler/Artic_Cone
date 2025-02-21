@@ -4,6 +4,8 @@ import React, { useRef, useState } from "react";
 import { Stage, Layer, Line, Rect } from "react-konva";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
+import { Console } from "console";
 type SliderProps = React.ComponentProps<typeof Slider>
  
 const Canvas: React.FC = ({className,...props}: SliderProps) => {
@@ -22,7 +24,7 @@ const Canvas: React.FC = ({className,...props}: SliderProps) => {
       
       const pos = stage.getPointerPosition();
       if (!pos) return;
-  
+      console.log(pos);
       fillArea(pos.x, pos.y, color);
       return;
     }
@@ -79,7 +81,7 @@ const pixels = imageData.data;
 const startIndex = (Math.floor(y) * offscreenCanvas.width + Math.floor(x)) * 4;
 const targetColor = pixels.slice(startIndex, startIndex + 4); // [R, G, B, A]
 if (arraysEqual(targetColor, Array.from(hexToRGBA(fillColor)))) return;
-floodFill(pixels, Math.floor(x), Math.floor(y), targetColor, hexToRGBA(fillColor), offscreenCanvas.width, offscreenCanvas.height);
+floodFill(pixels, Math.floor(x), Math.floor(y), Array.from(targetColor), hexToRGBA(fillColor), offscreenCanvas.width, offscreenCanvas.height);
 ctx.putImageData(imageData, 0, 0);
   
 // Update Konva stage with the filled image
@@ -93,28 +95,27 @@ filledImage.onload = () => {
   };
   
   // Flood fill algorithm
-  const floodFill = (pixels: Uint8ClampedArray<ArrayBufferLike>, x: number, y: number, targetColor: Uint8ClampedArray<ArrayBufferLike>, fillColor: number[], width: number, height: number) => {
+  const floodFill = (pixels: Uint8ClampedArray, x: number, y: number, targetColor: number[], fillColor: number[], width: number, height: number) => {
     const stack = [[x, y]];
-    const vistited = new Set();
+    const visited = new Set<number>();
+  
     while (stack.length) {
-      const current = stack.pop();
-      if (!current) continue;
-      const [px, py] = current;
+      const poppedVal = stack.pop();
+      if (!poppedVal) continue;
+      const [px, py] = poppedVal;
       const index = (py * width + px) * 4;
-      vistited.add(index);
-
-      if (px < 0 || py < 0 || px >= width || py >= height) continue;
-
-      if (!colorMatch(pixels, index, targetColor)) {
-        setColorAt(pixels, index, fillColor);
-
-        stack.push([px - 1, py]);
-        stack.push([px + 1, py]);
-        stack.push([px, py - 1]);
-        stack.push([px, py + 1]);
-      }else{
-        break;
-      }
+      
+      if (px < 0 || py < 0 || px >= width || py >= height || visited.has(index)) continue;
+      visited.add(index);
+      const targetColorArray = Uint8ClampedArray.from(targetColor);
+      if (!colorMatch(pixels, index, targetColorArray)) continue;
+  
+      setColorAt(pixels, index, fillColor);
+  
+      stack.push([px - 1, py]);
+      stack.push([px + 1, py]);
+      stack.push([px, py - 1]);
+      stack.push([px, py + 1]);
     }
   };
   const colorMatch = (pixels: { [x: string]: any; }, index: number, targetColor: Uint8ClampedArray<ArrayBufferLike>) => {
@@ -140,11 +141,12 @@ filledImage.onload = () => {
   };
   const arraysEqual = (a: Uint8ClampedArray<ArrayBuffer>, b: number[]) => JSON.stringify(a) === JSON.stringify(b);
   return (
-    <div className="flex h-screen items-center justify-center space-x-4">
+
+    <div className="flex h-auto items-center justify-center mx-5">
       <div className="flex items-center justify-center border-2 border-gray-300 rounded-lg overflow-hidden">
         <Stage
-          width={600}
-          height={400}
+          width={900}
+          height={500}
           className="bg-white"
           ref={stageRef}
           onMouseDown={handleMouseDown}
@@ -155,14 +157,14 @@ filledImage.onload = () => {
           onTouchEnd={handleMouseUp}
         >
           <Layer>
-            <Rect width={600} height={400} fill={backgroundColor} />
+            <Rect width={1200} height={800} fill={backgroundColor} />
             {lines.map((line, i) => (
               <Line key={i} points={line.points} stroke={line.color} strokeWidth={line.size} tension={0.5} lineCap="round" lineJoin="round" />
             ))}
           </Layer>
         </Stage>
       </div>
-      <div className="w-[100px] h-[400px] bg-gray-100 justify flex-col items-center justify-center space-y-4 p-4 shadow-md rounded-lg">
+      <div className="w-[100px] h-4/5 bg-gray-100 justify items-center justify-center space-y-4 p-4 shadow-md rounded-lg mx-5 mt-20 mb-20">
         <Button onClick={clearCanvas} className="w-12 h-12 rounded-full bg-white border-2 border-red-500 text-red-500 flex items-center justify-center translate-x-2">
           ❌
         </Button>
@@ -215,7 +217,7 @@ filledImage.onload = () => {
               </td>
         </table>
         </div>
-        <div className="flex space-x-1 size-fillleft-0">
+        <div className="flex space-x-1 size-fill left-0 ">
         <table>
           <td className="items-center ">
             <tr>
@@ -250,7 +252,7 @@ filledImage.onload = () => {
           </tr>
           </td>
               </table>
-          <div className="justify-center h-fill w-fill text-sm font-medium bg-stone-800 rounded-md">
+          <div className="justify-center h-fill w-fill text-sm font-medium bg-slate-500 rounded-md border-2 border-stone-800">
           <Slider
               orientation="vertical"
               onValueChange={(value) => setSize(value)}
@@ -258,11 +260,14 @@ filledImage.onload = () => {
               max={100}
               min={1}
               step={1}
-              className="cursor-pointer h-fill translate-x-[10%]"
+              className="cursor-pointer h-fill self-center"
               />  
-              <p className="size-6 text-center text-sm font-bold flex y-0 text-stone-100 bg-zinc-500 border-1 border-white rounded-md">{size}</p>
-          </div>
+              <div className="flex flex-col items-center bg-zinc-500 border-t-2 border-stone-800 rounded-b-md">
+              <p className="size-6 w-auto text-xs text-center  items-center font-bold flex y-0 text-stone-100  ">{size}</p>
+              </div>
+            </div>
         </div>
+        
         
       </div>
     </div>
