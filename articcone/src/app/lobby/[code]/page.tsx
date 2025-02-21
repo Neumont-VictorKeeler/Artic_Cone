@@ -15,11 +15,12 @@ interface Player {
     isHost: boolean;
 }
 
-//TODO: Add game settings for host to customize
-//TODO: Deploy both client and server to Vercel
-//TODO: ensure host disconnect reassigns host to another player
+//TODO: Add game settings for host to customize -- SG
+//TODO: Make Host & Kick button was removed... add back -- SG
+//TODO: background is crosshatch design
+//TODO: ensure host disconnect reassigns host to another player -- SG
 //TODO: add player limit to lobby? (5 players for presentation)
-//TODO: split lobby page into components for better readability, different files for different components.
+//TODO: split lobby page into components for better readability, different files for different components -- SG
 
 // WebSocket Connection
 const socket = io(process.env.NEXT_PUBLIC_WEBSOCKET_URL || "http://localhost:3001");
