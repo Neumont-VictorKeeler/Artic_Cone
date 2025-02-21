@@ -22,7 +22,7 @@ interface Player {
 //TODO: split lobby page into components for better readability, different files for different components.
 
 // WebSocket Connection
-const socket = io("http://localhost:3001"); //TODO: change to server URL
+const socket = io(process.env.NEXT_PUBLIC_WEBSOCKET_URL || "http://localhost:3001");
 
 export default function Lobby() {
     const router = useRouter();
