@@ -6,67 +6,67 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { db } from "@/lib/firebase";
 import { ref, get, set, push } from "firebase/database";
+import { toast } from "react-hot-toast";
+import { io } from "socket.io-client";
+
+const socket = io("http://localhost:3001"); // WebSocket Server
 
 export default function Home() {
     const router = useRouter();
     const [lobbyCode, setLobbyCode] = useState("");
     const [playerName, setPlayerName] = useState("");
     const [error, setError] = useState("");
-    const [countdown, setCountdown] = useState<number | null>(null);
-    const [kickCountdown, setKickCountdown] = useState<number | null>(null);
-
-    const RATE_LIMIT_TIME = 10000; // time it takes to create a new lobby
-    const KICK_BAN_TIME = 10000; // time for a kicked player to rejoin
 
     useEffect(() => {
         document.title = "Artic Cone Home";
-        cleanupEmptyLobbies();
 
-        const lastCreatedLobbyTime = localStorage.getItem("lastLobbyCreated");
-        const lastKickedTime = localStorage.getItem("lastKicked");
+        const savedLobby = localStorage.getItem("lobbyCode");
+        const savedPlayer = localStorage.getItem("playerId");
 
-        if (lastCreatedLobbyTime) {
-            const updateCountdown = () => {
-                const elapsedTime = Date.now() - parseInt(lastCreatedLobbyTime);
-                const remainingTime = Math.ceil((RATE_LIMIT_TIME - elapsedTime) / 1000);
-                if (remainingTime > 0) {
-                    setCountdown(remainingTime);
+        // Check if the lobby exists before redirecting
+        const verifyLobby = async () => {
+            if (savedLobby && savedPlayer) {
+                const lobbyRef = ref(db, `lobbies/${savedLobby}`);
+                const snapshot = await get(lobbyRef);
+
+                if (snapshot.exists()) {
+                    toast.success("Rejoining your lobby...");
+                    router.push(`/lobby/${savedLobby}`);
                 } else {
-                    setCountdown(null);
+                    // If lobby doesn't exist, clear session storage
+                    localStorage.removeItem("lobbyCode");
+                    localStorage.removeItem("playerId");
+                    localStorage.removeItem("playerName");
+                    toast.error("Your lobby no longer exists.");
                 }
-            };
+            }
+        };
 
-            updateCountdown();
-            const interval = setInterval(updateCountdown, 1000);
-            return () => clearInterval(interval);
-        }
+        verifyLobby();
 
-        if (lastKickedTime) {
-            const updateKickCountdown = () => {
-                const elapsedTime = Date.now() - parseInt(lastKickedTime);
-                const remainingTime = Math.ceil((KICK_BAN_TIME - elapsedTime) / 1000);
-                if (remainingTime > 0) {
-                    setKickCountdown(remainingTime);
-                } else {
-                    setKickCountdown(null);
-                }
-            };
+        // Listen for storage changes (other tabs)
+        const syncTabs = (event: StorageEvent) => {
+            if (event.key === "lobbyCode" || event.key === "playerId") {
+                window.location.reload(); // Force sync
+            }
+        };
 
-            updateKickCountdown();
-            const interval = setInterval(updateKickCountdown, 1000);
-            return () => clearInterval(interval);
-        }
-    }, []);
+        window.addEventListener("storage", syncTabs);
+
+        return () => {
+            window.removeEventListener("storage", syncTabs);
+        };
+    }, [router]);
+
+    // Function to generate a clean, readable lobby code
+    const generateLobbyCode = (length = 6) => {
+        const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+    };
 
     const checkAndJoinLobby = async () => {
         if (!playerName.trim() || !lobbyCode.trim()) {
             setError("Please enter a lobby code and your name.");
-            return;
-        }
-
-        const lastKickedTime = localStorage.getItem("lastKicked");
-        if (lastKickedTime && Date.now() - parseInt(lastKickedTime) < KICK_BAN_TIME) {
-            setError(`You were kicked before! Please wait ${kickCountdown} seconds before rejoining.`);
             return;
         }
 
@@ -83,9 +83,16 @@ export default function Home() {
                     isHost: false,
                 });
 
+                // Save session locally
                 localStorage.setItem("playerId", playerId);
                 localStorage.setItem("playerName", playerName);
-                localStorage.removeItem("lastKicked"); // Allow them to join again
+                localStorage.setItem("lobbyCode", lobbyCode);
+
+                // Trigger storage event for other tabs
+                localStorage.setItem("syncUpdate", Date.now().toString());
+
+                // Emit WebSocket event to notify others
+                socket.emit("join_lobby", { code: lobbyCode, playerId, playerName });
 
                 router.push(`/lobby/${lobbyCode}`);
             } else {
@@ -95,26 +102,6 @@ export default function Home() {
             setError("Error checking lobby.");
         }
     };
-    
-    const cleanupEmptyLobbies = async () => {
-        try {
-            const lobbiesRef = ref(db, "lobbies");
-            const snapshot = await get(lobbiesRef);
-            
-            if(snapshot.exists()){
-                const lobbies = snapshot.val();
-                for (const lobbyCode in lobbies){
-                    const players = lobbies[lobbyCode].players;
-                    if(!players || Object.keys(players).length === 0){
-                        await set(ref(db, `lobbies/${lobbyCode}`), null);
-                        console.log(`Deleted empty lobby: ${lobbyCode}`);
-                    }
-                }
-            }
-        } catch (error){
-            console.error("Error cleaning up empty lobbies:", error);
-        }
-    }
 
     const createLobby = async () => {
         if (!playerName.trim()) {
@@ -122,41 +109,14 @@ export default function Home() {
             return;
         }
 
-        const lastCreatedLobbyTime = localStorage.getItem("lastLobbyCreated");
-        const currentTime = Date.now();
-
-        if (lastCreatedLobbyTime && currentTime - parseInt(lastCreatedLobbyTime) < RATE_LIMIT_TIME) {
-            return;
-        }
-
-        localStorage.setItem("lastLobbyCreated", currentTime.toString());
-
-        let customCode = lobbyCode.trim(); // Use user input if provided
-
-        if (!/^[a-zA-Z0-9]{5,10}$/.test(customCode)) {
-            let uniqueCode = "";
-            let attempts = 0;
-
-            while (attempts < 5) {
-                const newLobbyRef = push(ref(db, "lobbies"));
-                uniqueCode = (newLobbyRef.key ?? "ABCDE").substring(0, 8).toUpperCase();
-
-                const lobbyExists = (await get(ref(db, `lobbies/${uniqueCode}`))).exists();
-                if (!lobbyExists) {
-                    customCode = uniqueCode;
-                    break;
-                }
-
-                attempts++;
-            }
-        }
+        let customCode = lobbyCode.trim() || generateLobbyCode(); // Allow custom or auto-generate
 
         try {
             const lobbyRef = ref(db, `lobbies/${customCode}`);
             const lobbySnapshot = await get(lobbyRef);
 
             if (lobbySnapshot.exists()) {
-                setError("A lobby with this code already exists.");
+                setError("A lobby with this code already exists. Try again.");
                 return;
             }
 
@@ -173,8 +133,19 @@ export default function Home() {
                 gameState: "waiting",
             });
 
+            // Save session locally
             localStorage.setItem("playerId", playerId);
             localStorage.setItem("playerName", playerName);
+            localStorage.setItem("lobbyCode", customCode);
+
+            //  Trigger storage event for other tabs
+            localStorage.setItem("syncUpdate", Date.now().toString());
+
+            // Notify other players via WebSockets
+            socket.emit("create_lobby", { code: customCode, hostId: playerId, hostName: playerName });
+
+            setLobbyCode(customCode);
+            toast.success(`Lobby Created: ${customCode}`);
 
             router.push(`/lobby/${customCode}`);
         } catch (err) {
@@ -182,14 +153,14 @@ export default function Home() {
         }
     };
 
-
     return (
-        <main className="flex flex-col items-center justify-center h-screen bg-background text-foreground">
+        <main className="flex flex-col items-center justify-center h-screen bg-gradient-to-r from-blue-300 via-green-900 to-blue-300 text-foreground">
             <div className="flex flex-col items-center">
                 <img src="/articcone-logo.png" alt="Artic Cone Logo" className="w-full max-w-[500px] h-auto mb-4" />
-                <h1 className="text-4xl font-bold text-primary">ARTIC CONE</h1>
+                <h1 className="text-4xl font-bold bg-gradient-to-b from-white to-blue-300 bg-clip-text text-transparent">
+                    ARTIC CONE
+                </h1>
             </div>
-            
 
             <div className="mt-8 flex flex-col items-center space-y-4">
                 <Input
@@ -198,34 +169,34 @@ export default function Home() {
                     value={playerName}
                     onChange={(e) => setPlayerName(e.target.value)}
                     maxLength={20}
-                    className="text-center"
+                    className="text-center bg-gradient-to-b from-white to-blue-100 shadow-md border border-gray-300 focus:ring-2 focus:ring-blue-400 text-amber-950"
                 />
                 <Input
                     type="text"
                     placeholder="Enter Lobby Code"
                     value={lobbyCode}
-                    onChange={(e) => setLobbyCode(e.target.value)}
+                    onChange={(e) => setLobbyCode(e.target.value.toUpperCase())}
                     maxLength={10}
-                    className="text-center"
+                    className="text-center bg-gradient-to-b from-white to-blue-100 shadow-md border border-gray-300 focus:ring-2 focus:ring-blue-400 text-amber-950"
                 />
 
                 <div className="h-6 flex items-center">
                     {error && <p className="text-red-500 text-center">{error}</p>}
                 </div>
 
-                {countdown !== null && (
-                    <p className="text-yellow-500 text-sm">You must wait {countdown} seconds before creating another lobby.</p>
-                )}
-
-                {kickCountdown !== null && (
-                    <p className="text-red-500 text-sm">You were kicked before! Please wait {kickCountdown} seconds before rejoining.</p>
-                )}
-
                 <div className="flex space-x-4">
-                    <Button variant="default" onClick={checkAndJoinLobby}>
+                    <Button
+                        variant="default"
+                        onClick={checkAndJoinLobby}
+                        className="bg-gradient-to-b from-white to-blue-100 hover:from-blue-100 hover:to-white shadow-md border border-gray-300 text-amber-950"
+                    >
                         Join Lobby
                     </Button>
-                    <Button variant="secondary" onClick={createLobby} disabled={countdown !== null}>
+                    <Button
+                        variant="secondary"
+                        onClick={createLobby}
+                        className="bg-gradient-to-b from-white to-blue-100 hover:from-blue-100 hover:to-white shadow-md border border-gray-300 text-amber-950 disabled:opacity-50"
+                    >
                         Create Lobby
                     </Button>
                 </div>
