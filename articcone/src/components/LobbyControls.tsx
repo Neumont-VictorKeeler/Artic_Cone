@@ -10,10 +10,10 @@ interface LobbyControlsProps {
 }
 
 const LobbyControls: React.FC<LobbyControlsProps> = ({
-                                                         isHost,
-                                                         onStartGame,
-                                                         onDeleteLobby,
-                                                     }) => {
+                                                        isHost,
+                                                        onStartGame,
+                                                        onDeleteLobby,
+                                                    }) => {
     return (
         <div className="mt-6 flex flex-col items-center space-y-4 w-full max-w-xs">
             {isHost && (
