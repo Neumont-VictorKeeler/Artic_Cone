@@ -35,7 +35,7 @@ export function ProgressBar({duration, onComplete}: any) {
       };
     
       return (
-        <div className="flex w-full bg-gray-200 rounded-md h-5 dark:bg-gray-700 text-center">
+        <div className="flex w-fill bg-gray-200 rounded-md mx-[13%] h-10  dark:bg-gray-700 text-center border-2 border-black">
           <div
             className="bg-blue-500 rounded-md h-full"
             style={{ width: `${progress}%` }}>

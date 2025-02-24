@@ -1,14 +1,11 @@
 "use client";
-import {cn} from "@/lib/utils"
-import React, { useRef, useState } from "react";
+import React, {useImperativeHandle, useRef, useState } from "react";
 import { Stage, Layer, Line, Rect } from "react-konva";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Input } from "@/components/ui/input";
-import { Console } from "console";
 type SliderProps = React.ComponentProps<typeof Slider>
  
-const Canvas: React.FC = ({className,...props}: SliderProps) => {
+const Canvas = React.forwardRef( (props: SliderProps, ref: React.Ref<unknown>  ) => {
   const [lines, setLines] = useState<{size: number; points: number[]; color: string }[]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
   const [backgroundColor, setBackgroundColor] = useState("white"); // For fill bucket
@@ -16,7 +13,18 @@ const Canvas: React.FC = ({className,...props}: SliderProps) => {
   const [color, setColor] = useState("black");
   const [tool, setTool] = useState("pen");
   const [size, setSize] = useState([3]);
-
+  const [allowed, setAllowed] = useState(true);
+  
+  useImperativeHandle(ref, () => ({
+    disableCanvas() {
+        console.log("Canvas Disabled");
+        setAllowed(false);
+    },
+    enableCanvas() {
+        console.log("Canvas Enabled");
+        setAllowed(true);
+    }
+}));
   const handleMouseDown = (e: any) => {
     if (tool === "fill") {
       const stage = stageRef.current;
@@ -37,7 +45,7 @@ const Canvas: React.FC = ({className,...props}: SliderProps) => {
   };
 
   const handleMouseMove = (e: any) => {
-    if (!isDrawing || tool === "fill") return;
+    if (!isDrawing || tool === "fill" || !allowed) return;
 
     const stage = e.target.getStage();
     const point = stage.getPointerPosition();
@@ -142,7 +150,7 @@ filledImage.onload = () => {
   const arraysEqual = (a: Uint8ClampedArray<ArrayBuffer>, b: number[]) => JSON.stringify(a) === JSON.stringify(b);
   return (
 
-    <div className="flex h-auto items-center justify-center mx-5">
+    <div className="flex h-fill items-center justify-center mx-5">
       <div className="flex items-center justify-center border-2 border-gray-300 rounded-lg overflow-hidden">
         <Stage
           width={900}
@@ -164,7 +172,7 @@ filledImage.onload = () => {
           </Layer>
         </Stage>
       </div>
-      <div className="w-[100px] h-4/5 bg-gray-100 justify items-center justify-center space-y-4 p-4 shadow-md rounded-lg mx-5 mt-20 mb-20">
+      <div className={`w-[100px] h-4/5 bg-gray-100 justify items-center justify-center space-y-4 p-4 shadow-md rounded-lg mx-5 mt-20 mb-20 ${allowed ? '' : 'hidden'}`}>
         <Button onClick={clearCanvas} className="w-12 h-12 rounded-full bg-white border-2 border-red-500 text-red-500 flex items-center justify-center translate-x-2">
           ❌
         </Button>
@@ -272,6 +280,6 @@ filledImage.onload = () => {
       </div>
     </div>
   );
-};
+});
 
 export default Canvas;
