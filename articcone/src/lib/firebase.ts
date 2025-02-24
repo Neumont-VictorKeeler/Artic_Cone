@@ -3,13 +3,13 @@ import { getDatabase } from "firebase/database";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyDJaFu_OLN1C_STGYDfSLLAn3P3Hd9t92o",
-    authDomain: "articcone-af9e1.firebaseapp.com",
-    databaseURL: "https://articcone-af9e1-default-rtdb.firebaseio.com/",
-    projectId: "articcone-af9e1",
-    storageBucket: "articcone-af9e1.appspot.com",
-    messagingSenderId: "544992861666",
-    appId: "1:544992861666:web:c9b54174aa4acffd35edbb"
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
 // Initialize Firebase
