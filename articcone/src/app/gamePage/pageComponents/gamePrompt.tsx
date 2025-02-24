@@ -1,5 +1,5 @@
 import { Input } from "@/components/ui/input";
-import { ProgressBar } from "@/components/progressbar";
+import { ProgressBar } from "@/components/ProgressBar";
 import React from "react";
 let counter;
 export default function GamePrompt() {

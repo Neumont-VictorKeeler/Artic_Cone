@@ -10,7 +10,7 @@ const ioHandler = (req: any, res: any) => {
 
             socket.on("join_lobby", ({ code, playerId }) => {
                 socket.join(code);
-                console.log(`User ${playerId} joined lobby: ${code}`);
+                console.log(`${playerId} joined lobby: ${code}`);
 
                 // Notify others in the lobby that a player joined
                 io.to(code).emit("player_joined", playerId);

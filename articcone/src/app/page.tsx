@@ -2,6 +2,7 @@
 import React from "react";
 import LobbyForm from "@/components/LobbyForm";
 import useLobbySession from "@/hooks/useLobbySession";
+import PurgeLobbies from "@/components/PurgeLobbies";
 
 export default function Home() {
     useLobbySession();
@@ -14,6 +15,7 @@ export default function Home() {
                     ARTIC CONE
                 </h1>
             </div>
+            <PurgeLobbies />
             <LobbyForm />
         </main>
     );

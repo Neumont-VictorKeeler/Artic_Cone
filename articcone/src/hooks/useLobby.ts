@@ -47,13 +47,19 @@ function useLobby(code: string | null) {
                 setPlayers(playerList);
                 setIsHost(data.players?.[savedId]?.isHost || false);
 
-                // If the current player was removed, redirect them out
+                // If the current player's record is missing, they've been kicked.
                 if (savedId && !data.players?.[savedId]) {
+                    // Clear local storage to prevent auto-rejoin.
+                    localStorage.removeItem("lobbyCode");
+                    localStorage.removeItem("playerId");
+                    localStorage.removeItem("playerName");
+                    // Set a flag so that the auto-join logic on the home page will ignore this user.
+                    localStorage.setItem("kicked", "true");
                     toast.error("You have been removed from the lobby.");
                     router.push("/");
                 }
 
-                // Sync deletion timer from Firebase or set one if needed
+                // Sync deletion timer from Firebase or set one if needed.
                 if (data.deletionTimestamp) {
                     setDeletionTimestamp(data.deletionTimestamp);
                 } else if (playerList.length === 1 && playerList[0].isHost) {
