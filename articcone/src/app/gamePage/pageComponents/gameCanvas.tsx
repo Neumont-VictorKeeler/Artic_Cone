@@ -1,8 +1,13 @@
 import React, { useRef, useState, useEffect } from "react";
 import Canvas from "@/components/canvas";
+<<<<<<< Updated upstream
 import Lockscreen from "@/components/lockscreen";
 import { ProgressBar } from "@/components/ProgressBar";
 
+import Lockscreen from "@/components/Lockscreen";
+import { ProgressBar } from "@/components/ProgressBar";
+import { set } from "firebase/database";
+>>>>>>> Stashed changes
 export default function Whiteboard() {
     const canvasRef = useRef<any>(null);
     const [PROMPT, setPrompt] = useState("");
