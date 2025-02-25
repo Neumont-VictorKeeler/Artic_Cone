@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { ref, onValue, update } from "firebase/database";
 import { db } from "@/lib/firebase";
 import { useRouter, useParams } from "next/navigation";
@@ -7,15 +7,13 @@ import { toast } from "react-hot-toast";
 import socket from "@/lib/socket";
 
 // Components:
-import Canvas from "@/components/canvas";
-import PromptInput from "@/components/PromptInput";
-import { ProgressBar } from "@/components/ProgressBar";
+import Whiteboard from "gameCanvas";
 
 interface GamePlayer {
     id: string;
     name: string;
     prompt: string;
-    imageToGuess?: string; // Add this property
+    imageToGuess?: string;
 }
 
 interface GameData {
@@ -24,7 +22,7 @@ interface GameData {
     phase: "drawing" | "guessing" | "complete";
     players: GamePlayer[];
     results?: any;
-    timer?: number; // Added this property
+    timer?: number;
 }
 
 export default function GamePage() {
@@ -32,14 +30,9 @@ export default function GamePage() {
     const { code } = useParams();
     const [game, setGame] = useState<GameData | null>(null);
     const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
-
-    // Local UI states
-    const [myPrompt, setMyPrompt] = useState("");
     const [isLoading, setIsLoading] = useState(true);
-    const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
-        // Grab local storage ID
         setMyPlayerId(localStorage.getItem("playerId") || null);
     }, []);
 
@@ -56,7 +49,6 @@ export default function GamePage() {
             setGame(data);
             setIsLoading(false);
 
-            // Set the timer end time in local storage
             if (data.timer) {
                 localStorage.setItem("timerEndTime", data.timer.toString());
             }
@@ -75,9 +67,6 @@ export default function GamePage() {
             router.push("/");
             return;
         }
-        if (game.phase === "drawing") {
-            setMyPrompt(me.prompt);
-        }
     }, [game, myPlayerId, router]);
 
     const handleRoundComplete = async () => {
@@ -85,13 +74,20 @@ export default function GamePage() {
         const { round, totalRounds, phase, results = {} } = game;
 
         let drawingDataURL = "";
-        if (phase === "drawing" && canvasRef.current) {
-            drawingDataURL = canvasRef.current.toDataURL();
+        if (phase === "drawing") {
+            drawingDataURL = ""; // Assuming Whiteboard handles drawing data
+        }
+
+        const me = game.players.find((p) => p.id === myPlayerId);
+        if (!me) {
+            toast.error("You are not in this game.");
+            router.push("/");
+            return;
         }
 
         let guessedPrompt = "";
         if (phase === "guessing") {
-            guessedPrompt = myPrompt;
+            guessedPrompt = me.prompt;
         }
 
         const newRoundData: Record<string, any> = results[`round${round}`] || {};
@@ -161,7 +157,7 @@ export default function GamePage() {
             round: nextRound,
             phase: nextPhase,
             players: updatedPlayers,
-            timer: Date.now() + 60000, // Set the timer to 60 seconds from now
+            timer: Date.now() + 60000,
         });
 
         socket.emit("update_game_state", {
@@ -179,7 +175,9 @@ export default function GamePage() {
     const { phase } = game;
     const me = game.players.find((p) => p.id === myPlayerId);
     if (!me) {
-        return <div>You are not a player in this game.</div>;
+        toast.error("You are not in this game.");
+        router.push("/");
+        return null;
     }
 
     return (
@@ -191,7 +189,7 @@ export default function GamePage() {
 
             {phase === "drawing" && (
                 <div className="bg-white p-3 mb-3 border-2 border-black rounded">
-                    <p className="font-bold">Prompt: {myPrompt}</p>
+                    <p className="font-bold">Prompt: {me.prompt}</p>
                 </div>
             )}
             {phase === "guessing" && me.imageToGuess && (
@@ -204,22 +202,7 @@ export default function GamePage() {
                 </div>
             )}
 
-            <ProgressBar
-                duration={60}
-                onComplete={handleRoundComplete}
-                className="w-full max-w-lg"
-            />
-
-            {phase === "drawing" ? (
-                <Canvas ref={canvasRef} />
-            ) : phase === "guessing" ? (
-                <PromptInput
-                    value={myPrompt}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMyPrompt(e.target.value)}
-                />
-            ) : (
-                <div className="text-2xl">Game Complete (or unknown phase)</div>
-            )}
+            <Whiteboard />
         </main>
     );
 }

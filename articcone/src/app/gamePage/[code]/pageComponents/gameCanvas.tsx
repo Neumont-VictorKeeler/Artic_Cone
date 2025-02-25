@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import Canvas from "@/components/canvas";
 
-import Lockscreen from "@/components/Lockscreen";
+import Lockscreen from "@/components/lockscreen";
 import { ProgressBar } from "@/components/ProgressBar";
 import { Button } from "@/components/ui/button";
 import { set } from "firebase/database";
@@ -58,7 +58,7 @@ export default function Whiteboard() {
             <div className="relative w-full mx-1 ">
                 <ProgressBar 
                 className="w-3/4 min-h-[12px] bg-white border-2 border-black rounded-lg mt-4" 
-                duration={10000} 
+                duration={2} 
                 onComplete={() => lockscreen(true)}
             />
             
