@@ -18,8 +18,13 @@ export default function useLobbySession() {
                 const lobbyRef = ref(db, `lobbies/${savedLobby}`);
                 const snapshot = await get(lobbyRef);
                 if (snapshot.exists()) {
-                    toast.success("Rejoining your lobby...");
-                    router.push(`/lobby/${savedLobby}`);
+                    if (localStorage.getItem("kicked") === "true") {
+                        toast.error("You have been removed from the lobby.");
+                        localStorage.removeItem("kicked");
+                    } else {
+                        toast.success("Rejoining your lobby...");
+                        router.push(`/lobby/${savedLobby}`);
+                    }
                 } else {
                     localStorage.removeItem("lobbyCode");
                     localStorage.removeItem("playerId");

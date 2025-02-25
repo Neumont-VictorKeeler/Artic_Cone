@@ -1,21 +1,38 @@
-import React  ,{ useImperativeHandle, useState } from 'react'
+import React, { useImperativeHandle, useState } from 'react';
 import { Input } from './ui/input';
 
-const PromptInput = React.forwardRef((props , ref: React.Ref<unknown>) => {
-    const [userPrompt, setUserPrompt] = useState("");
-    const [disabled, setDisabled] = React.useState(false);
-    useImperativeHandle(ref, () => ({
-      setDisabled: (value: boolean) => setDisabled(value),
-      getPrompt: () => getPrompt()
-    }));
+interface PromptInputProps {
+    value: string;
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+const PromptInput = React.forwardRef((props: PromptInputProps, ref: React.Ref<unknown>) => {
+    const { value, onChange } = props;
+    const [disabled, setDisabled] = useState(false);
+
     const getPrompt = () => {
-      if (!userPrompt || userPrompt == ""){ 
-          return "The Prompt was empty";
-      }else{
-          return userPrompt;}
-    }
-  return (
-    <Input disabled={disabled} type="text" value={userPrompt} onChange={(e) => setUserPrompt(e.target.value)} className="flex w-3/4 mx-auto mb-auto mt-2 bg-white border-2 border-black" placeholder="Enter prompt here"></Input>
-  )
+        if (!value || value === ""){
+            return "The Prompt was empty";
+        } else {
+            return value;
+        }
+    };
+
+    useImperativeHandle(ref, () => ({
+        setDisabled: (value: boolean) => setDisabled(value),
+        getPrompt: () => getPrompt()
+    }));
+
+    return (
+        <Input
+            disabled={disabled}
+            type="text"
+            value={value}
+            onChange={onChange}
+            className="flex w-3/4 mx-auto mb-auto mt-2 bg-white border-2 border-black"
+            placeholder="Enter prompt here"
+        />
+    );
 });
-export default PromptInput
+
+export default PromptInput;

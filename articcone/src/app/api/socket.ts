@@ -1,4 +1,6 @@
 import { Server } from "socket.io";
+import { update, ref } from "firebase/database";
+import { db } from "@/lib/firebase"; // Assuming you have a firebase config file
 
 const ioHandler = (req: any, res: any) => {
     if (!res.socket.server.io) {
@@ -18,6 +20,15 @@ const ioHandler = (req: any, res: any) => {
 
             socket.on("player_update", ({ code, players }) => {
                 io.to(code).emit("update_players", players);
+            });
+
+            socket.on("start_game", ({ code, playerPrompts }) => {
+                io.to(code).emit("start_game", { code, playerPrompts });
+            });
+
+            socket.on("update_game_state", (newGameState) => {
+                const gameStateRef = ref(db, `lobbies/${newGameState.code}/game`);
+                update(gameStateRef, newGameState);
             });
 
             socket.on("disconnect", () => {

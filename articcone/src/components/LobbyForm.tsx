@@ -66,7 +66,7 @@ const LobbyForm = () => {
                 value={playerName}
                 onChange={(e) => setPlayerName(e.target.value)}
                 maxLength={20}
-                className="text-center bg-gradient-to-b from-white to-blue-100 shadow-md border border-gray-300 focus:ring-2 focus:ring-blue-400 text-amber-950"
+                className="text-center bg-gradient-to-b from-white to-blue-100 shadow-md border border-gray-300 focus:ring-2 focus:ring-blue-400"
             />
             <Input
                 type="text"
@@ -74,14 +74,14 @@ const LobbyForm = () => {
                 value={lobbyCode}
                 onChange={(e) => setLobbyCode(e.target.value.toUpperCase())}
                 maxLength={10}
-                className="text-center bg-gradient-to-b from-white to-blue-100 shadow-md border border-gray-300 focus:ring-2 focus:ring-blue-400 text-amber-950"
+                className="text-center bg-gradient-to-b from-white to-blue-100 shadow-md border border-gray-300 focus:ring-2 focus:ring-blue-400"
             />
             {error && <p className="text-red-500 text-center">{error}</p>}
             <div className="flex space-x-4">
                 <Button variant="default" onClick={handleJoin}>
                     Join Lobby
                 </Button>
-                <Button variant="secondary" onClick={handleCreate}>
+                <Button variant="creative" onClick={handleCreate}>
                     Create Lobby
                 </Button>
             </div>

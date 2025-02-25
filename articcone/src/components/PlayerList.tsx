@@ -32,7 +32,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
                     {isHost && player.id !== currentPlayerId && (
                         <div className="flex space-x-2 mt-2 md:mt-0">
                             <Button
-                                variant="default"
+                                variant="secondary"
                                 onClick={() => onMakeHost(player.id)}
                                 className="px-2 py-1 text-sm"
                             >
