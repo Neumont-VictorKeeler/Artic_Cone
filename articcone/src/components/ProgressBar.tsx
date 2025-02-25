@@ -1,37 +1,46 @@
 import React, { useEffect, useState } from "react";
 
-interface ProgressBarProps {
-    duration: number;
-    onComplete: () => void;
-    className?: string;
-}
-
-export const ProgressBar: React.FC<ProgressBarProps> = ({ duration, onComplete, className }) => {
-    const [timeLeft, setTimeLeft] = useState(duration);
+export function ProgressBar({ duration, onComplete }: any) {
+    const [remainingTime, setRemainingTime] = useState(duration); 
 
     useEffect(() => {
-        const timerId = setInterval(() => {
-            const now = Date.now();
-            const endTime = localStorage.getItem("timerEndTime");
-            if (endTime) {
-                const timeRemaining = Math.max(0, parseInt(endTime) - now);
-                setTimeLeft(timeRemaining);
-                if (timeRemaining <= 0) {
-                    clearInterval(timerId);
-                    onComplete();
+        if (remainingTime <= 0) {
+            onComplete();
+            return;
+        }
+
+        const interval = setInterval(() => {
+            setRemainingTime((prevTime: number) => {
+                if (prevTime <= 1) {
+                    clearInterval(interval);
+                    return 0;
                 }
-            }
+                return prevTime - 1;
+            });
         }, 1000);
 
-        return () => clearInterval(timerId);
-    }, [onComplete]);
+        return () => clearInterval(interval);
+    }, [remainingTime, onComplete]);
+    const progress = (remainingTime / duration) * 100;
+    const formatTime = (time: number) => {
+        const minutes = Math.floor(time / 60);
+        const seconds = time % 60;
+        return `${minutes.toString().padStart(2, "0")}:${seconds
+            .toString()
+            .padStart(2, "0")}`;
+    };
 
     return (
-        <div className={`progress-bar ${className}`}>
+        <div className="flex justify-center items-center  w-full ">
+          <div className="flex w-3/4 bg-gray-200 h-6 rounded-full overflow-hidden border-2 border-black items-center"> 
             <div
-                className="progress-bar-inner"
-                style={{ width: `${(timeLeft / duration) * 100}%` }}
+                className="bg-blue-500 h-full transition-all"
+                style={{ width: `${progress}%` }}
             />
+            <div className="absolute right-1/2 flex items-center self-center ">
+                {formatTime(remainingTime)}
+            </div>
+        </div>
         </div>
     );
-};
+}
