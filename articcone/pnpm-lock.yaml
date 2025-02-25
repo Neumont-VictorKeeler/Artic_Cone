@@ -50,6 +50,9 @@ importers:
       firebase:
         specifier: ^11.3.1
         version: 11.3.1
+      gifshot:
+        specifier: ^0.4.5
+        version: 0.4.5
       gifwrap:
         specifier: ^0.10.1
         version: 0.10.1
@@ -1906,6 +1909,9 @@ packages:
 
   get-tsconfig@4.10.0:
     resolution: {integrity: sha512-kGzZ3LWWQcGIAmg6iWvXn0ei6WDtV26wzHRMwDSzmAbcXrTEXxHy6IehI6/4eT6VRKyMP1eF1VqwrVUmE/LR7A==}
+
+  gifshot@0.4.5:
+    resolution: {integrity: sha512-oaOTT7patjxFFv7ptR0R0NNhqy3ZAmcLUQCjM/sTsvsQaUAlB2fHirLajcNAKJ6ufoVhdP+ZkXYvmUycHP1FNg==}
 
   gifwrap@0.10.1:
     resolution: {integrity: sha512-2760b1vpJHNmLzZ/ubTtNnEx5WApN/PYWJvXvgS+tL1egTTthayFYIQQNi136FLEDcN/IyEY2EcGpIITD6eYUw==}
@@ -5042,6 +5048,8 @@ snapshots:
   get-tsconfig@4.10.0:
     dependencies:
       resolve-pkg-maps: 1.0.0
+
+  gifshot@0.4.5: {}
 
   gifwrap@0.10.1:
     dependencies:
