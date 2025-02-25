@@ -3,6 +3,7 @@ import React, {useImperativeHandle, useRef, useState, useEffect } from "react";
 import { Stage, Layer, Line, Rect } from "react-konva";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { get } from "http";
 type SliderProps = React.ComponentProps<typeof Slider>
  
 const Canvas = React.forwardRef( (props: SliderProps, ref: React.Ref<unknown>  ) => {
@@ -19,7 +20,7 @@ const Canvas = React.forwardRef( (props: SliderProps, ref: React.Ref<unknown>  )
   useEffect(() => {
     const handleResize = () => {
       setCanvasWidth(window.innerWidth / 1.55);
-      setCanvasHeight(window.innerHeight / 1.27);
+      setCanvasHeight(window.innerHeight / 1.37);
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
@@ -32,6 +33,12 @@ const Canvas = React.forwardRef( (props: SliderProps, ref: React.Ref<unknown>  )
     enableCanvas() {
         console.log("Canvas Enabled");
         setAllowed(true);
+    },
+    getHeight() {
+        return canvasHeight;
+    },
+    getWidth() {
+        return canvasWidth;
     }
 }));
   const handleMouseDown = (e: any) => {
@@ -199,7 +206,7 @@ filledImage.onload = () => {
       { color: "red", bg: "bg-red-500" , hoverbg:"hover:bg-red-400"},
       { color: "blue", bg: "bg-blue-500" , hoverbg:"hover:bg-blue-400"},
       { color: "green", bg: "bg-green-500" , hoverbg:"hover:bg-green-400"},
-      { color: "yellow", bg: "bg-yellow-500", hoverbg:"hover:bg-yellow-300" },
+      { color: "yellow", bg: "bg-yellow-300", hoverbg:"hover:bg-yellow-300" },
       { color: "purple", bg: "bg-purple-800", hoverbg:"hover:bg-purple-700" },
       { color: "orange", bg: "bg-orange-500" , hoverbg:"hover:bg-orange-300"},
     ].map(({ color, bg , hoverbg}) => (
