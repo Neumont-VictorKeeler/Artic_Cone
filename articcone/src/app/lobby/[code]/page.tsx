@@ -52,9 +52,7 @@ export default function LobbyPage() {
         router.push("/");
     };
 
-    // ----------------------
-    //  SETUP GAME & START
-    // ----------------------
+
     const handleStartGame = async () => {
         if (!code) return;
 
@@ -74,7 +72,6 @@ export default function LobbyPage() {
         const shuffledPrompts = promptList.sort(() => 0.5 - Math.random());
 
         // 3. Assign each player an initial prompt
-        //    (We just match index to each player. If more players than prompts, we cycle via %)
         const playerPrompts = players.map((player, index) => ({
             ...player,
             prompt: shuffledPrompts[index % shuffledPrompts.length],
@@ -86,14 +83,14 @@ export default function LobbyPage() {
             game: {
                 round: 1,
                 totalRounds,
-                phase: "drawing",       // "drawing" or "guessing" or "complete"
-                players: playerPrompts, // store each player's prompt
-                results: {},            // empty results to start
+                phase: "drawing",
+                players: playerPrompts,
+                results: {},
+                timer: Date.now() + 60000 // <--- 1 minute from now
             },
             gameState: "started",
         });
 
-        // 5. Notify players to start & navigate
         socket.emit("start_game", { code });
         router.push(`/gamePage/${code}`);
     };

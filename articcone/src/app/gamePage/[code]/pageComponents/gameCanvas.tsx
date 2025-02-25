@@ -1,77 +1,74 @@
+"use client"
+
 import React, { useRef, useState, useEffect } from "react";
 import Canvas from "@/components/canvas";
-
 import Lockscreen from "@/components/lockscreen";
 import { ProgressBar } from "@/components/ProgressBar";
 import { Button } from "@/components/ui/button";
-import { set } from "firebase/database";
 
-export default function Whiteboard() {
+interface WhiteboardProps {
+    timer: number;
+    prompt: string;
+    isLocked: boolean;
+    onLock: () => void;
+}
+
+export default function Whiteboard({ timer, prompt, isLocked, onLock }: WhiteboardProps) {
     const canvasRef = useRef<any>(null);
-    const [PROMPT, setPrompt] = useState("");
-    const [isEnabled, setEnabled] = useState(false);
-    const [done, setDone] = useState(false);
-    const [buttonDisabled, setButtonDisabled] = useState(false);
-    const [time, setTime] = useState(10);
-    const lockscreen = (roundEnd: boolean) => { 
-        if (roundEnd){ 
-        setDone(true);
-        setButtonDisabled(true);
-        setEnabled(true); 
-        canvasRef.current?.disableCanvas();
-        }else{
-            setEnabled(true);
-            canvasRef.current?.disableCanvas();
-        }
-    };
-    
-    const unlockscreen = () => {
-        setEnabled(false);
-        canvasRef.current?.enableCanvas();
-    }
+    const [timeLeft, setTimeLeft] = useState<number>(timer);
 
-    const doneBtnClick = () => {
-        if (buttonDisabled) return; // Prevent multiple clicks
-
-        setButtonDisabled(true); // Disable button
-        setTimeout(() => setButtonDisabled(false), 5000);
-         setDone(!done);
-         done ? unlockscreen() : lockscreen(false);
-         }
     useEffect(() => {
-        setPrompt("BANANA");
-        setEnabled(false);
-        setTime(10);
-    }, []);
+        if (timeLeft <= 0) {
+            onLock();
+            return;
+        }
+
+        const interval = setInterval(() => {
+            setTimeLeft((prev) => {
+                if (prev <= 1) {
+                    onLock();
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [timeLeft, onLock]);
+
+    useEffect(() => {
+        if (isLocked) {
+            canvasRef.current?.disableCanvas();
+        } else {
+            canvasRef.current?.enableCanvas();
+        }
+    }, [isLocked]);
 
     return (
-        <main className="w-full h-screen flex flex-col items-center  bg-gradient-to-br from-green-600 to-blue-400 overflow-hidden">
+        <main className="w-full h-screen flex flex-col items-center bg-gradient-to-br from-green-600 to-blue-400 overflow-hidden">
             <div className="flex bg-white shadow-lg rounded-lg justify-center p-4 w-3/4 max-w-lg text-center border-2 border-black m-2">
-                <h1 className="text-2xl font-bold">Prompt: {PROMPT}</h1>
+                <h1 className="text-2xl font-bold">Prompt: {prompt}</h1>
             </div>
-            <Button 
-                className={`w-3/4 ${done ? 'bg-blue-500' : 'bg-red-500'} shadow-lg rounded-lg justify-center  border-2 border-black m-1`}
-                onClick={doneBtnClick}
-                disabled={buttonDisabled}
+
+            <Button
+                className={`w-3/4 ${isLocked ? "bg-blue-500" : "bg-red-500"} shadow-lg rounded-lg justify-center border-2 border-black m-1`}
+                onClick={onLock}
+                disabled={isLocked}
             >
-                {done ? "Unlock" : "lock"}
+                {isLocked ? "Locked" : "Lock"}
             </Button>
 
-            <div className="relative w-full mx-1 ">
-                <ProgressBar 
-                className="w-3/4 min-h-[12px] bg-white border-2 border-black rounded-lg mt-4" 
-                duration={time} 
-                onComplete={() => lockscreen(true)}
-            />
-            
-            <div className="relative w-full ">
-                <Canvas 
-                    ref={canvasRef} 
-                    className="" 
+            <div className="relative w-full mx-1">
+                <ProgressBar
+                    className="w-3/4 min-h-[12px] bg-white border-2 border-black rounded-lg mt-4"
+                    duration={timeLeft}
+                    onComplete={onLock}
                 />
-                <Lockscreen isEnabled={isEnabled} />
-            </div>
-                
+
+                <div className="relative w-full">
+                    <Canvas ref={canvasRef} />
+                    <Lockscreen isEnabled={isLocked} />
+                </div>
             </div>
         </main>
     );

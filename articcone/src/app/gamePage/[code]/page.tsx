@@ -1,34 +1,44 @@
-"use client";
+"use client"
+
 import React, { useState, useEffect } from "react";
-import { ref, onValue, update } from "firebase/database";
+import {ref, onValue, update} from "firebase/database";
 import { db } from "@/lib/firebase";
 import { useRouter, useParams } from "next/navigation";
 import { toast } from "react-hot-toast";
 import socket from "@/lib/socket";
-
-// Components:
 import Whiteboard from "./pageComponents/gameCanvas";
+import GamePrompt from "./pageComponents/gamePrompt";
 
-interface GamePlayer {
+function convertTimestampToSeconds(timestamp: number): number {
+    const currentTime = Date.now();
+    const differenceInMilliseconds = timestamp - currentTime;
+    const differenceInSeconds = Math.floor(differenceInMilliseconds / 1000);
+    return differenceInSeconds;
+}
+
+interface Player {
     id: string;
-    name: string;
     prompt: string;
-    imageToGuess?: string;
+    locked: boolean;
+}
+
+interface Game {
+    phase: string;
+    timer: number;
+    players: Player[];
+    round: number;
+    totalRounds: number;
+    results: Record<string, any>;
 }
 
 interface GameData {
-    round: number;
-    totalRounds: number;
-    phase: "drawing" | "guessing" | "complete";
-    players: GamePlayer[];
-    results?: any;
-    timer?: number;
+    phase: string;
 }
 
 export default function GamePage() {
     const router = useRouter();
     const { code } = useParams();
-    const [game, setGame] = useState<GameData | null>(null);
+    const [game, setGame] = useState<Game | null>(null);
     const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -45,13 +55,9 @@ export default function GamePage() {
                 router.push("/");
                 return;
             }
-            const data = snapshot.val() as GameData;
+            const data = snapshot.val();
             setGame(data);
             setIsLoading(false);
-
-            if (data.timer) {
-                localStorage.setItem("timerEndTime", data.timer.toString());
-            }
 
             if (data.phase === "complete") {
                 router.push(`/gameResults/${code}`);
@@ -61,11 +67,10 @@ export default function GamePage() {
 
     useEffect(() => {
         if (!game || !myPlayerId) return;
-        const me = game.players.find((p) => p.id === myPlayerId);
+        const me = game.players.find((p: Player) => p.id === myPlayerId);
         if (!me) {
             toast.error("You are not in this game.");
             router.push("/");
-            return;
         }
     }, [game, myPlayerId, router]);
 
@@ -73,43 +78,11 @@ export default function GamePage() {
         if (!game || !myPlayerId) return;
         const { round, totalRounds, phase, results = {} } = game;
 
-        let drawingDataURL = "";
-        if (phase === "drawing") {
-            drawingDataURL = ""; // Assuming Whiteboard handles drawing data
-        }
-
-        const me = game.players.find((p) => p.id === myPlayerId);
-        if (!me) {
-            toast.error("You are not in this game.");
-            router.push("/");
-            return;
-        }
-
-        let guessedPrompt = "";
-        if (phase === "guessing") {
-            guessedPrompt = me.prompt;
-        }
-
-        const newRoundData: Record<string, any> = results[`round${round}`] || {};
-        const myPrevData = newRoundData[myPlayerId] || {};
-
-        if (phase === "drawing") {
-            myPrevData.drawing = drawingDataURL;
-            myPrevData.prompt = myPrevData.prompt || "";
-        } else if (phase === "guessing") {
-            myPrevData.prompt = guessedPrompt;
-            myPrevData.drawing = myPrevData.drawing || "";
-        }
-        newRoundData[myPlayerId] = myPrevData;
-
         const roundKey = `round${round}`;
-        await update(ref(db, `lobbies/${code}/game/results`), {
-            [roundKey]: newRoundData,
-        });
+        const newRoundData: Record<string, any> = results[roundKey] || {};
 
         let nextPhase: GameData["phase"] = phase;
         let nextRound = round;
-
         if (phase === "drawing") {
             nextPhase = "guessing";
         } else if (phase === "guessing") {
@@ -121,50 +94,28 @@ export default function GamePage() {
             }
         }
 
-        let updatedPlayers = [...game.players];
-        if (nextPhase === "drawing" && nextRound <= totalRounds) {
-            const playerCount = updatedPlayers.length;
-            const roundData = newRoundData;
-            updatedPlayers = updatedPlayers.map((p, i) => {
-                const prevIndex = (i - 1 + playerCount) % playerCount;
-                const prevPlayer = game.players[prevIndex];
-                const prevPlayerResults = roundData[prevPlayer.id];
-                const newPrompt = prevPlayerResults?.prompt || "???";
-                return {
-                    ...p,
-                    prompt: newPrompt,
-                };
-            });
-        }
-
-        if (nextPhase === "guessing") {
-            const playerCount = updatedPlayers.length;
-            const roundData = newRoundData;
-            updatedPlayers = updatedPlayers.map((p, i) => {
-                const prevIndex = (i - 1 + playerCount) % playerCount;
-                const prevPlayer = game.players[prevIndex];
-                const prevPlayerResults = roundData[prevPlayer.id];
-                const imageToGuess = prevPlayerResults?.drawing || "";
-                return {
-                    ...p,
-                    prompt: p.prompt,
-                    imageToGuess,
-                };
-            });
-        }
+        const updatedPlayers = game.players.map((p) => ({
+            ...p,
+            locked: false
+        }));
 
         await update(ref(db, `lobbies/${code}/game`), {
             round: nextRound,
             phase: nextPhase,
             players: updatedPlayers,
+            results: {
+                ...results,
+                [roundKey]: newRoundData
+            },
             timer: Date.now() + 60000,
+            lockedCount: 0
         });
 
         socket.emit("update_game_state", {
             code,
             round: nextRound,
             phase: nextPhase,
-            players: updatedPlayers,
+            players: updatedPlayers
         });
     };
 
@@ -172,37 +123,40 @@ export default function GamePage() {
         return <div>Loading...</div>;
     }
 
-    const { phase } = game;
-    const me = game.players.find((p) => p.id === myPlayerId);
-    if (!me) {
-        toast.error("You are not in this game.");
-        router.push("/");
-        return null;
-    }
+    const { phase, timer, players, round, totalRounds } = game;
+    const myPlayer = players.find((p: Player) => p.id === myPlayerId);
+    const timeLeftInSeconds = convertTimestampToSeconds(timer);
 
     return (
         <main className="min-h-screen flex flex-col items-center p-4">
-            <h1 className="text-2xl font-bold mb-2">Round {game.round} / {game.totalRounds}</h1>
-            <h2 className="text-xl mb-4">
-                Phase: {phase.toUpperCase()}
-            </h2>
+            <h1 className="text-2xl font-bold mb-2">
+                Round {round} / {totalRounds}
+            </h1>
+            <h2 className="text-xl mb-4">Phase: {phase.toUpperCase()}</h2>
 
-            {phase === "drawing" && (
-                <div className="bg-white p-3 mb-3 border-2 border-black rounded">
-                    <p className="font-bold">Prompt: {me.prompt}</p>
-                </div>
+            {phase === "drawing" && myPlayer && (
+                <Whiteboard
+                    timer={timeLeftInSeconds}
+                    prompt={myPlayer.prompt}
+                    isLocked={myPlayer.locked}
+                    onLock={handleRoundComplete}
+                />
             )}
-            {phase === "guessing" && me.imageToGuess && (
-                <div className="bg-white p-3 mb-3 border-2 border-black rounded">
-                    <img
-                        src={me.imageToGuess}
-                        alt="Drawing to guess"
-                        style={{ maxWidth: 300, maxHeight: 300 }}
-                    />
-                </div>
+            {phase === "guessing" && (
+                <GamePrompt
+                    timer={timeLeftInSeconds}
+                    onComplete={handleRoundComplete}
+                />
             )}
 
-            <Whiteboard />
+            {phase !== "complete" && (
+                <button
+                    onClick={handleRoundComplete}
+                    className="bg-gray-300 px-4 py-2 rounded mt-4"
+                >
+                    Force Next Round
+                </button>
+            )}
         </main>
     );
 }
