@@ -40,7 +40,7 @@ export default function GamePrompt({ timer, onComplete }: GamePromptProps) {
     };
 
     return (
-        <main className="w-screen h-screen bg-green-500 flex flex-col">
+        <main className="w-screen h-screen flex flex-col">
             <div className="m-3">
                 <ProgressBar duration={timeLeft} onComplete={onComplete} />
             </div>

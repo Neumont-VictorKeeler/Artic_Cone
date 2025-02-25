@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useEffect } from "react";
 import Canvas from "@/components/canvas";
-import Lockscreen from "@/components/lockscreen";
+import Lockscreen from "@/components/Lockscreen";
 import { ProgressBar } from "@/components/ProgressBar";
 import { Button } from "@/components/ui/button";
 
@@ -15,7 +15,6 @@ interface WhiteboardProps {
 
 export default function Whiteboard({ timer, prompt, isLocked, onLock }: WhiteboardProps) {
     const canvasRef = useRef<any>(null);
-    const [timeLeft, setTimeLeft] = useState<number>(timer);
 
     useEffect(() => {
         if (timeLeft <= 0) {
@@ -45,7 +44,7 @@ export default function Whiteboard({ timer, prompt, isLocked, onLock }: Whiteboa
     }, [isLocked]);
 
     return (
-        <main className="w-full h-screen flex flex-col items-center bg-gradient-to-br from-green-600 to-blue-400 overflow-hidden">
+        <main className="w-full h-screen flex flex-col items-center overflow-hidden">
             <div className="flex bg-white shadow-lg rounded-lg justify-center p-4 w-3/4 max-w-lg text-center border-2 border-black m-2">
                 <h1 className="text-2xl font-bold">Prompt: {prompt}</h1>
             </div>
