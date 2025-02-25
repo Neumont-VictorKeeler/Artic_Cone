@@ -15,7 +15,6 @@ export default function Home() {
                     ARTIC CONE
                 </h1>
             </div>
-            <PurgeLobbies />
             <LobbyForm />
         </main>
     );

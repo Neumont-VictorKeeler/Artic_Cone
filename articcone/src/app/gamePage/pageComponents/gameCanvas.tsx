@@ -22,14 +22,14 @@ export default function Whiteboard() {
 
     return (
         <main className="w-full h-screen flex flex-col items-center  bg-gradient-to-br from-green-600 to-blue-400 overflow-hidden">
-            <div className="flex bg-white  shadow-lg rounded-lg justify-center p-4 w-3/4 max-w-lg text-center border-2 border-black m-5">
+            <div className="flex bg-white shadow-lg rounded-lg justify-center p-4 w-3/4 max-w-lg text-center border-2 border-black m-5">
                 <h1 className="text-2xl font-bold">Prompt: {PROMPT}</h1>
             </div>
 
             <div className="relative w-full mx-1 ">
                 <ProgressBar 
                 className="w-3/4 min-h-[12px] bg-white border-2 border-black rounded-lg mt-4" 
-                duration={1000} 
+                duration={500} 
                 onComplete={() => lockscreen()}
             />
             

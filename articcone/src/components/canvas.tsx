@@ -1,5 +1,5 @@
 "use client";
-import React, {useImperativeHandle, useRef, useState } from "react";
+import React, {useImperativeHandle, useRef, useState, useEffect } from "react";
 import { Stage, Layer, Line, Rect } from "react-konva";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -14,7 +14,16 @@ const Canvas = React.forwardRef( (props: SliderProps, ref: React.Ref<unknown>  )
   const [tool, setTool] = useState("pen");
   const [size, setSize] = useState([3]);
   const [allowed, setAllowed] = useState(true);
-  
+  const [canvasWidth, setCanvasWidth] = useState(900);
+  const [canvasHeight, setCanvasHeight] = useState(500);
+  useEffect(() => {
+    const handleResize = () => {
+      setCanvasWidth(window.innerWidth / 1.55);
+      setCanvasHeight(window.innerHeight / 1.27);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  })
   useImperativeHandle(ref, () => ({
     disableCanvas() {
         console.log("Canvas Disabled");
@@ -150,11 +159,11 @@ filledImage.onload = () => {
   const arraysEqual = (a: Uint8ClampedArray<ArrayBuffer>, b: number[]) => JSON.stringify(a) === JSON.stringify(b);
   return (
 
-    <div className="flex w-full h-full items-center justify-center mx-auto">
+    <div className="flex w-full  h-full items-center justify-center mx-auto p-1">
       <div className="relative items-center justify-center border-2 border-gray-300 rounded-lg overflow-hidden m-2">
         <Stage
-          width={900}
-          height={500}
+          width={canvasWidth}
+          height={canvasHeight}
           className="bg-white"
           ref={stageRef}
           onMouseDown={handleMouseDown}
@@ -165,7 +174,7 @@ filledImage.onload = () => {
           onTouchEnd={handleMouseUp}
         >
           <Layer>
-            <Rect width={900} height={500} fill={backgroundColor} />
+            <Rect width={canvasWidth} height={canvasHeight} fill={backgroundColor} />
             {lines.map((line, i) => (
               <Line key={i} points={line.points} stroke={line.color} strokeWidth={line.size} tension={0.5} lineCap="round" lineJoin="round" />
             ))}
@@ -173,7 +182,7 @@ filledImage.onload = () => {
         </Stage>
       </div>
       {/* Tool box */}
-      <div className={`size-[90%] bg-gray-100 flex flex-col items-center  shadow-md rounded-lg mr-auto\ ${allowed ? '' : 'hidden'}`}>
+      <div className={`w-50  bg-gray-100 flex flex-col items-center  shadow-md rounded-lg  ${allowed ? '' : 'hidden'}`}>
   {/* Clear Canvas Button */}
   <Button
     onClick={clearCanvas}
@@ -183,7 +192,7 @@ filledImage.onload = () => {
   </Button>
 
   {/* Color Palette */}
-  <div className=" w-full p-1 grid grid-cols-2 gap-2  items-center">
+  <div className="flex grid grid-cols-2 w-full h-full p-/ gap-2 items-center">
     {[
       { color: "white", bg: "bg-white" , hoverbg:"hover:bg-gray-100"},
       { color: "black", bg: "bg-black" , hoverbg:"hover:bg-gray-600"},
@@ -197,13 +206,13 @@ filledImage.onload = () => {
       <Button
         key={color}
         onClick={() => setColor(color)}
-        className={`flex ${bg} w-[30%] h-[90%] rounded-full border-2 border-gray-300 ${hoverbg} items-center justify-center`}
+        className={`flex  ${bg} w-[90%] h-[90%] m-1 rounded-full border-2 border-gray-300 ${hoverbg} items-center justify-center`}
       />
     ))}
   </div>
 
   {/* Tool Buttons */}
-  <div className="grid grid-cols-1 w-full  items-center gap-2 ">
+  <div className="grid grid-cols-1 w-full justify-center items-center gap-2 ">
     {[
       { toolName: "pen", icon: "✏️", bg: "bg-white", hoverbg:"hover:bg-gray-100" },
       { toolName: "eraser", icon: "🧽", bg: "bg-red-300", hoverbg:"hover:bg-pink-400" },
