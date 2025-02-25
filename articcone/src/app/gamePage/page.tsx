@@ -9,7 +9,7 @@ const Whiteboard = dynamic(() => import("./pageComponents/gameCanvas"), { ssr: f
 const GamePrompt = dynamic(() => import("./pageComponents/gamePrompt"), { ssr: false });
 
 export default function GamePage() {
-    const [state, setState] = useState("prompt");
+    const [state, setState] = useState("whiteboard");
     function getGameState() {
         setState("whiteboard");
     }

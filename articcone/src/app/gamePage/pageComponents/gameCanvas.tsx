@@ -1,13 +1,10 @@
 import React, { useRef, useState, useEffect } from "react";
 import Canvas from "@/components/canvas";
-<<<<<<< Updated upstream
-import Lockscreen from "@/components/lockscreen";
-import { ProgressBar } from "@/components/ProgressBar";
 
 import Lockscreen from "@/components/Lockscreen";
 import { ProgressBar } from "@/components/ProgressBar";
 import { set } from "firebase/database";
->>>>>>> Stashed changes
+
 export default function Whiteboard() {
     const canvasRef = useRef<any>(null);
     const [PROMPT, setPrompt] = useState("");
@@ -24,25 +21,28 @@ export default function Whiteboard() {
     }, []);
 
     return (
-        <main className="w-screen h-screen flex flex-col items-center justify-center bg-gradient-to-br from-green-600 to-blue-400">
-            <div className="bg-white shadow-lg rounded-lg p-4 w-3/4 max-w-lg text-center border-2 border-black">
+        <main className="w-full h-screen flex flex-col items-center  bg-gradient-to-br from-green-600 to-blue-400 overflow-hidden">
+            <div className="flex bg-white  shadow-lg rounded-lg justify-center p-4 w-3/4 max-w-lg text-center border-2 border-black m-5">
                 <h1 className="text-2xl font-bold">Prompt: {PROMPT}</h1>
             </div>
 
-            <div>
+            <div className="relative w-full mx-1 ">
                 <ProgressBar 
                 className="w-3/4 min-h-[12px] bg-white border-2 border-black rounded-lg mt-4" 
-                duration={10} 
+                duration={1000} 
                 onComplete={() => lockscreen()}
             />
             
 
-            <Lockscreen isEnabled={isEnabled} />
-
+            
+            <div className="relative w-full ">
                 <Canvas 
                     ref={canvasRef} 
-                    className="w-full border-2 border-black rounded-lg shadow-lg" 
+                    className="" 
                 />
+                <Lockscreen isEnabled={isEnabled} />
+            </div>
+                
             </div>
         </main>
     );

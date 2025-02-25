@@ -150,8 +150,8 @@ filledImage.onload = () => {
   const arraysEqual = (a: Uint8ClampedArray<ArrayBuffer>, b: number[]) => JSON.stringify(a) === JSON.stringify(b);
   return (
 
-    <div className="flex h-fill items-center justify-center mx-5">
-      <div className="flex items-center justify-center border-2 border-gray-300 rounded-lg overflow-hidden">
+    <div className="flex w-full h-full items-center justify-center mx-auto">
+      <div className="relative items-center justify-center border-2 border-gray-300 rounded-lg overflow-hidden m-2">
         <Stage
           width={900}
           height={500}
@@ -165,7 +165,7 @@ filledImage.onload = () => {
           onTouchEnd={handleMouseUp}
         >
           <Layer>
-            <Rect width={1200} height={800} fill={backgroundColor} />
+            <Rect width={900} height={500} fill={backgroundColor} />
             {lines.map((line, i) => (
               <Line key={i} points={line.points} stroke={line.color} strokeWidth={line.size} tension={0.5} lineCap="round" lineJoin="round" />
             ))}
@@ -173,46 +173,46 @@ filledImage.onload = () => {
         </Stage>
       </div>
       {/* Tool box */}
-      <div className={`w-[100px] bg-gray-100 flex flex-col items-center space-y-4 p-4 shadow-md rounded-lg mx-5 mt-20 mb-20 ${allowed ? '' : 'hidden'}`}>
+      <div className={`size-[90%] bg-gray-100 flex flex-col items-center  shadow-md rounded-lg mr-auto\ ${allowed ? '' : 'hidden'}`}>
   {/* Clear Canvas Button */}
   <Button
     onClick={clearCanvas}
-    className="w-12 h-12 rounded-full bg-white border-2 border-red-500 text-red-500 flex items-center justify-center"
+    className="w-[27%] h-[20%] rounded-full mt-2 bg-white border-2 border-red-500 text-red-500 flex items-center justify-center"
   >
     ❌
   </Button>
 
   {/* Color Palette */}
-  <div className="grid grid-cols-2 gap-2">
+  <div className=" w-full p-1 grid grid-cols-2 gap-2  items-center">
     {[
-      { color: "white", bg: "bg-white" },
-      { color: "black", bg: "bg-black" },
-      { color: "red", bg: "bg-red-500" },
-      { color: "blue", bg: "bg-blue-500" },
-      { color: "green", bg: "bg-green-500" },
-      { color: "yellow", bg: "bg-yellow-500" },
-      { color: "purple", bg: "bg-purple-800" },
-      { color: "orange", bg: "bg-orange-500" },
-    ].map(({ color, bg }) => (
+      { color: "white", bg: "bg-white" , hoverbg:"hover:bg-gray-100"},
+      { color: "black", bg: "bg-black" , hoverbg:"hover:bg-gray-600"},
+      { color: "red", bg: "bg-red-500" , hoverbg:"hover:bg-red-400"},
+      { color: "blue", bg: "bg-blue-500" , hoverbg:"hover:bg-blue-400"},
+      { color: "green", bg: "bg-green-500" , hoverbg:"hover:bg-green-400"},
+      { color: "yellow", bg: "bg-yellow-500", hoverbg:"hover:bg-yellow-300" },
+      { color: "purple", bg: "bg-purple-800", hoverbg:"hover:bg-purple-700" },
+      { color: "orange", bg: "bg-orange-500" , hoverbg:"hover:bg-orange-300"},
+    ].map(({ color, bg , hoverbg}) => (
       <Button
         key={color}
         onClick={() => setColor(color)}
-        className={`${bg} w-10 h-10 rounded-full border-2 border-gray-300 hover:bg-white`}
+        className={`flex ${bg} w-[30%] h-[90%] rounded-full border-2 border-gray-300 ${hoverbg} items-center justify-center`}
       />
     ))}
   </div>
 
   {/* Tool Buttons */}
-  <div className="grid grid-cols-1 gap-2">
+  <div className="grid grid-cols-1 w-full  items-center gap-2 ">
     {[
-      { toolName: "pen", icon: "✏️", bg: "bg-white" },
-      { toolName: "eraser", icon: "🧽", bg: "bg-red-300" },
-      { toolName: "fill", icon: "🪣", bg: "bg-yellow-300" },
-    ].map(({ toolName, icon, bg }) => (
+      { toolName: "pen", icon: "✏️", bg: "bg-white", hoverbg:"hover:bg-gray-100" },
+      { toolName: "eraser", icon: "🧽", bg: "bg-red-300", hoverbg:"hover:bg-pink-400" },
+      { toolName: "fill", icon: "🪣", bg: "bg-yellow-300" , hoverbg:"hover:bg-red-500"},
+    ].map(({ toolName, icon, bg , hoverbg}) => (
       <Button
         key={toolName}
         onClick={() => setTool(toolName)}
-        className={`flex items-center justify-center w-10 h-10 rounded-full border-2 hover:bg-black ${
+        className={`flex items-center justify-center w-[90%] h-[90%] rounded-full border-2 mx-auto ${hoverbg} ${
           tool === toolName ? "border-gray-700 border-4" : "border-gray-300"
         } ${bg}`}
       >
@@ -222,7 +222,7 @@ filledImage.onload = () => {
   </div>
 
   {/* Brush Size Slider */}
-  <div className="flex flex-col items-center w-full bg-slate-500 rounded-md border-2 border-stone-800">
+  <div className="flex flex-col items-center w-[90%] bg-slate-500 m-2 rounded-md border-2 border-stone-800">
     <Slider
       orientation="vertical"
       onValueChange={(value) => setSize(value)}
