@@ -7,13 +7,15 @@ interface LobbyControlsProps {
     isHost: boolean;
     onStartGame: () => void;
     onDeleteLobby: () => void;
+    onLeaveLobby: () => void;
 }
 
 const LobbyControls: React.FC<LobbyControlsProps> = ({
-                                                        isHost,
-                                                        onStartGame,
-                                                        onDeleteLobby,
-                                                    }) => {
+     isHost,
+     onStartGame,
+     onDeleteLobby, 
+                                                         onLeaveLobby,
+ }) => {
     return (
         <div className="mt-6 flex flex-col items-center space-y-4 w-full max-w-xs">
             {isHost && (
@@ -32,6 +34,15 @@ const LobbyControls: React.FC<LobbyControlsProps> = ({
                     onClick={onDeleteLobby}
                 >
                     Delete Lobby
+                </Button>
+            )}
+            {!isHost && (
+                <Button
+                    variant="default"
+                    className="bg-gradient-to-b from-white to-blue-100 hover:from-red-100 hover:to-white shadow-md border border-gray-300 text-amber-950 disabled:opacity-50"
+                    onClick={onLeaveLobby}
+                >
+                    Leave Game
                 </Button>
             )}
         </div>

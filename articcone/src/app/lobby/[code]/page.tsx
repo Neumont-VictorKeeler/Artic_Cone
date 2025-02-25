@@ -1,5 +1,4 @@
 ﻿"use client";
-
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ref, remove } from "firebase/database";
@@ -11,6 +10,7 @@ import LobbyCountdown from "@/components/LobbyCountdown";
 import LobbyControls from "@/components/LobbyControls";
 import useLobby from "@/hooks/useLobby";
 import "@/app/styles/globals.css";
+import {leaveLobby} from "@/lib/lobbyService";
 
 export default function LobbyPage() {
     const params = useParams();
@@ -33,8 +33,15 @@ export default function LobbyPage() {
     };
 
     const handleStartGame = () => {
-        router.push(`/gamePage/`);
+        router.push(`/gamePage/${code}`);
     };
+
+    const handleLeaveLobby = () => {
+        router.push("/");
+        leaveLobby(code!);
+    };
+
+
 
     // Use a ref to store the previous number of players
     const prevPlayersCount = useRef<number>(players.length);
@@ -64,11 +71,15 @@ export default function LobbyPage() {
                         onKick={kickPlayer}
                         onMakeHost={makeHost}
                     />
-                    {countdown !== null && <LobbyCountdown countdown={countdown} />}
+                    {/* Render the countdown only if there's one or fewer players */}
+                    {players.length <= 1 && countdown !== null && (
+                        <LobbyCountdown countdown={countdown} />
+                    )}
                     <LobbyControls
                         isHost={isHost}
                         onStartGame={handleStartGame}
                         onDeleteLobby={handleDeleteLobby}
+                        onLeaveLobby={handleLeaveLobby}
                     />
                 </>
             ) : (
