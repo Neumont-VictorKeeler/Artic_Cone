@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import Canvas from "@/components/canvas";
 
-import Lockscreen from "@/components/lockscreen";
+import Lockscreen from "@/components/Lockscreen";
 import { ProgressBar } from "@/components/ProgressBar";
 import { Button } from "@/components/ui/button";
 import { set } from "firebase/database";
@@ -12,6 +12,7 @@ export default function Whiteboard() {
     const [isEnabled, setEnabled] = useState(false);
     const [done, setDone] = useState(false);
     const [buttonDisabled, setButtonDisabled] = useState(false);
+    const [time, setTime] = useState(10);
     const lockscreen = (roundEnd: boolean) => { 
         if (roundEnd){ 
         setDone(true);
@@ -33,13 +34,14 @@ export default function Whiteboard() {
         if (buttonDisabled) return; // Prevent multiple clicks
 
         setButtonDisabled(true); // Disable button
-        setTimeout(() => setButtonDisabled(false), 1000);
+        setTimeout(() => setButtonDisabled(false), 5000);
          setDone(!done);
          done ? unlockscreen() : lockscreen(false);
          }
     useEffect(() => {
         setPrompt("BANANA");
         setEnabled(false);
+        setTime(10);
     }, []);
 
     return (
@@ -58,7 +60,7 @@ export default function Whiteboard() {
             <div className="relative w-full mx-1 ">
                 <ProgressBar 
                 className="w-3/4 min-h-[12px] bg-white border-2 border-black rounded-lg mt-4" 
-                duration={2} 
+                duration={time} 
                 onComplete={() => lockscreen(true)}
             />
             
