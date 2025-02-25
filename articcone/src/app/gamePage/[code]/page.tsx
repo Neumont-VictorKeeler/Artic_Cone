@@ -7,7 +7,7 @@ import { toast } from "react-hot-toast";
 import socket from "@/lib/socket";
 
 // Components:
-import Whiteboard from "gameCanvas";
+import Whiteboard from "./pageComponents/gameCanvas";
 
 interface GamePlayer {
     id: string;
