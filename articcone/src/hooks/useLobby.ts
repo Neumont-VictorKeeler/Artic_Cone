@@ -49,26 +49,25 @@ function useLobby(code: string | null) {
 
                 // If the current player's record is missing, they've been kicked.
                 if (savedId && !data.players?.[savedId]) {
+                    // Clear local storage to prevent auto-rejoin.
                     localStorage.removeItem("lobbyCode");
                     localStorage.removeItem("playerId");
                     localStorage.removeItem("playerName");
+                    // Set a flag so that the auto-join logic on the home page will ignore this user.
                     localStorage.setItem("kicked", "true");
                     toast.error("You have been removed from the lobby.");
                     router.push("/");
                 }
 
-                // Modified deletion timer logic:
-                if (playerList.length > 1) {
-                    // More than one player: clear the deletion timer.
-                    setDeletionTimestamp(null);
+                // Sync deletion timer from Firebase or set one if needed.
+                if (data.deletionTimestamp) {
+                    setDeletionTimestamp(data.deletionTimestamp);
                 } else if (playerList.length === 1 && playerList[0].isHost) {
-                    // Only the host remains: start or update the deletion countdown.
                     const newDeletionTimestamp = Date.now() + 120000; // 120 seconds from now
                     await update(ref(db, `lobbies/${code}`), { deletionTimestamp: newDeletionTimestamp });
                     setDeletionTimestamp(newDeletionTimestamp);
                     socket.emit("update_timer", newDeletionTimestamp);
                 } else {
-                    // Fallback: clear deletion timer.
                     setDeletionTimestamp(null);
                 }
             } else {
@@ -87,12 +86,8 @@ function useLobby(code: string | null) {
         };
     }, [code, router]);
 
-    // Countdown effect: if deletionTimestamp is null, clear countdown.
     useEffect(() => {
-        if (!deletionTimestamp) {
-            setCountdown(null);
-            return;
-        }
+        if (!deletionTimestamp) return;
 
         const interval = setInterval(() => {
             const remainingTime = Math.floor((deletionTimestamp - Date.now()) / 1000);
