@@ -39,6 +39,9 @@ const Canvas = React.forwardRef( (props: SliderProps, ref: React.Ref<unknown>  )
     },
     getWidth() {
         return canvasWidth;
+    },
+    getIMG(){
+      return stageRef.current.toDataURL();
     }
 }));
   const handleMouseDown = (e: any) => {
