@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import Canvas from "@/components/canvas";
 
-import Lockscreen from "@/components/Lockscreen";
+import Lockscreen from "@/components/lockscreen";
 import { ProgressBar } from "@/components/ProgressBar";
 import { Button } from "@/components/ui/button";
 import { set } from "firebase/database";
