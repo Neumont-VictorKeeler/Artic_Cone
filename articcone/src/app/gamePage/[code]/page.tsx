@@ -10,7 +10,6 @@ import Whiteboard from "./pageComponents/gameCanvas";
 import GamePrompt from "./pageComponents/gamePrompt";
 import EndScreen from "@/components/Endscreen";
 
-// Updated helper: rotate backwards so that each round a player works on the chain of the player before them.
 function getChainOwnerIndex(myIndex: number, round: number, totalPlayers: number) {
     return ((myIndex - (round - 1)) % totalPlayers + totalPlayers) % totalPlayers;
 }
@@ -160,22 +159,30 @@ export default function GamePage() {
     };
 
     const handleRoundComplete = async () => {
-        const { phase, round, totalRounds } = game;
-        let nextPhase = phase;
-        let nextRound = round;
-        if (phase === "drawing") {
-            nextPhase = "guessing";
-        } else if (phase === "guessing") {
-            nextRound = round + 1;
-            if (nextRound > totalRounds) {
-                nextPhase = "complete";
-            } else {
-                nextPhase = "drawing";
-            }
+        if (!game) return;
+        const { round, totalRounds } = game;
+
+        // Always increment the round
+        const nextRound = round + 1;
+
+        // Determine phase based on round parity:
+        // - Odd rounds: drawing phase
+        // - Even rounds: guessing phase
+        const nextPhase = nextRound % 2 === 1 ? "drawing" : "guessing";
+
+        // If we've exceeded totalRounds, the game is complete.
+        if (nextRound > totalRounds) {
+            await update(ref(db, `lobbies/${code}/game`), {
+                phase: "complete",
+            });
+            router.push(`/gameResults/${code}`);
+            return;
         }
 
+        // Unlock all players
         const updatedPlayers = game.players.map((p) => ({ ...p, locked: false }));
 
+        // Update game node with new round, phase, timer, and reset lockedCount.
         await update(ref(db, `lobbies/${code}/game`), {
             round: nextRound,
             phase: nextPhase,
@@ -190,11 +197,8 @@ export default function GamePage() {
             phase: nextPhase,
             players: updatedPlayers,
         });
-
-        if (nextPhase === "complete") {
-            router.push(`/gameResults/${code}`);
-        }
     };
+
 
     const timeLeftInSeconds = convertTimestampToSeconds(game.timer);
 
