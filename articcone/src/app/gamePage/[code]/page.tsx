@@ -150,7 +150,7 @@ export default function GamePage() {
 
     return (
         <main className="flex flex-col items-center justify-center h-screen bg-gradient-to-r from-blue-300 via-green-900 to-blue-300 text-foreground">
-            <h1 className="text-xl font-semibold">Round {round} / {totalRounds}</h1>
+            <h1 className="text-xl font-semibold">Round {round-1}/{totalRounds}</h1>
             <h2 className="text-xl font-semibold">Phase: {phase.toUpperCase()}</h2>
 
             {phase === "drawing" && (

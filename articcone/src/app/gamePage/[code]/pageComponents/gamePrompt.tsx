@@ -39,8 +39,10 @@ export default function GamePrompt({ timer, onComplete }: GamePromptProps) {
             userInputBox.current.setDisabled(true);
             setLocked(true);
             setButtonDisabled(true);
-            
+            if (promptValue === ""|| promptValue.length < 0) {onComplete("Last Player Forgot A Prompt");
+            }else{
             onComplete(promptValue);
+            }
         }
     };
 
