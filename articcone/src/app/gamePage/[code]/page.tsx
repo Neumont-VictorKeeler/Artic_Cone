@@ -1,43 +1,49 @@
-"use client"
+"use client";
 
-import React, { useState, useEffect } from "react";
-import {ref, onValue, update} from "firebase/database";
+import React, { useEffect, useState } from "react";
+import { ref, onValue, update } from "firebase/database";
 import { db } from "@/lib/firebase";
 import { useRouter, useParams } from "next/navigation";
 import { toast } from "react-hot-toast";
 import socket from "@/lib/socket";
 import Whiteboard from "./pageComponents/gameCanvas";
 import GamePrompt from "./pageComponents/gamePrompt";
+import EndScreen from "@/components/Endscreen";
 
-function convertTimestampToSeconds(timestamp: number): number {
-    const currentTime = Date.now();
-    const differenceInMilliseconds = timestamp - currentTime;
-    const differenceInSeconds = Math.floor(differenceInMilliseconds / 1000);
-    return differenceInSeconds;
+function getChainOwnerIndex(myIndex: number, round: number, totalPlayers: number) {
+    return ((myIndex - (round - 1)) % totalPlayers + totalPlayers) % totalPlayers;
+}
+
+function convertTimestampToSeconds(timestamp: number) {
+    const now = Date.now();
+    return Math.max(0, Math.floor((timestamp - now) / 1000));
+}
+
+interface ChainEntry {
+    prompt?: string;
+    image?: string;
 }
 
 interface Player {
     id: string;
-    prompt: string;
     locked: boolean;
+    name?: string;
 }
 
 interface Game {
-    phase: string;
-    timer: number;
-    players: Player[];
+    phase: "drawing" | "guessing" | "complete";
     round: number;
     totalRounds: number;
-    results: Record<string, any>;
-}
-
-interface GameData {
-    phase: string;
+    timer: number;
+    lockedCount: number;
+    players: Player[];
+    results: Record<string, { chain: ChainEntry[] }>;
 }
 
 export default function GamePage() {
     const router = useRouter();
     const { code } = useParams();
+
     const [game, setGame] = useState<Game | null>(null);
     const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -49,13 +55,13 @@ export default function GamePage() {
     useEffect(() => {
         if (!code) return;
         const gameRef = ref(db, `lobbies/${code}/game`);
-        return onValue(gameRef, (snapshot) => {
+        const unsub = onValue(gameRef, (snapshot) => {
             if (!snapshot.exists()) {
                 toast.error("Game not found or deleted.");
                 router.push("/");
                 return;
             }
-            const data = snapshot.val();
+            const data = snapshot.val() as Game;
             setGame(data);
             setIsLoading(false);
 
@@ -63,99 +69,158 @@ export default function GamePage() {
                 router.push(`/gameResults/${code}`);
             }
         });
+        return () => unsub();
     }, [code, router]);
 
     useEffect(() => {
         if (!game || !myPlayerId) return;
-        const me = game.players.find((p: Player) => p.id === myPlayerId);
-        if (!me) {
+        const inGame = game.players.some((p) => p.id === myPlayerId);
+        if (!inGame) {
             toast.error("You are not in this game.");
             router.push("/");
         }
     }, [game, myPlayerId, router]);
 
+    if (isLoading || !game) {
+        return <div>Loading...</div>;
+    }
+
+    // Determine my index in the players array.
+    let myIndex = -1;
+    if (game.players && myPlayerId) {
+        myIndex = game.players.findIndex((p) => p.id === myPlayerId);
+    }
+
+    let chainOwnerId: string | null = null;
+    let lastEntry: ChainEntry | null = null;
+    if (game && myIndex !== -1) {
+        const chainOwnerIndex = getChainOwnerIndex(myIndex, game.round, game.players.length);
+        chainOwnerId = game.players[chainOwnerIndex].id;
+        const chainKey = `player_${chainOwnerId}`;
+        const chainData = game.results?.[chainKey]?.chain || [];
+        lastEntry = chainData.length > 0 ? chainData[chainData.length - 1] : null;
+    }
+
+    const lastPrompt = lastEntry?.prompt || "";
+    const lastImage = lastEntry?.image || "";
+
+    const handleDrawingSubmission = async (imageData: string) => {
+        if (!game || myIndex === -1 || !chainOwnerId) return;
+
+        const updatedPlayers = game.players.map((p) =>
+            p.id === myPlayerId ? { ...p, locked: true } : p
+        );
+        const lockedCount = updatedPlayers.filter((p) => p.locked).length;
+
+        const chainKey = `player_${chainOwnerId}`;
+        const chainData = game.results[chainKey]?.chain || [];
+        // In drawing phase, add a new entry with the drawing.
+        chainData.push({ image: imageData });
+
+        await update(ref(db, `lobbies/${code}/game/results/${chainKey}`), {
+            chain: chainData,
+        });
+
+        await update(ref(db, `lobbies/${code}/game`), {
+            players: updatedPlayers,
+            lockedCount,
+        });
+
+        if (lockedCount === game.players.length) {
+            handleRoundComplete();
+        }
+    };
+
+    const handlePromptSubmission = async (promptValue: string) => {
+        if (!game || myIndex === -1 || !chainOwnerId) return;
+
+        const updatedPlayers = game.players.map((p) =>
+            p.id === myPlayerId ? { ...p, locked: true } : p
+        );
+        const lockedCount = updatedPlayers.filter((p) => p.locked).length;
+
+        const chainKey = `player_${chainOwnerId}`;
+        const chainData = game.results[chainKey]?.chain || [];
+        // In guessing phase, add a new entry with the prompt.
+        chainData.push({ prompt: promptValue });
+
+        await update(ref(db, `lobbies/${code}/game/results/${chainKey}`), {
+            chain: chainData,
+        });
+
+        await update(ref(db, `lobbies/${code}/game`), {
+            players: updatedPlayers,
+            lockedCount,
+        });
+
+        if (lockedCount === game.players.length) {
+            handleRoundComplete();
+        }
+    };
+
     const handleRoundComplete = async () => {
-        if (!game || !myPlayerId) return;
-        const { round, totalRounds, phase, results = {} } = game;
+        if (!game) return;
+        const { round, totalRounds } = game;
 
-        const roundKey = `round${round}`;
-        const newRoundData: Record<string, any> = results[roundKey] || {};
+        // Always increment the round
+        const nextRound = round + 1;
 
-        let nextPhase: GameData["phase"] = phase;
-        let nextRound = round;
-        if (phase === "drawing") {
-            nextPhase = "guessing";
-        } else if (phase === "guessing") {
-            nextRound = round + 1;
-            if (nextRound > totalRounds) {
-                nextPhase = "complete";
-            } else {
-                nextPhase = "drawing";
-            }
+        // Determine phase based on round parity:
+        // - Odd rounds: drawing phase
+        // - Even rounds: guessing phase
+        const nextPhase = nextRound % 2 === 1 ? "drawing" : "guessing";
+
+        // If we've exceeded totalRounds, the game is complete.
+        if (nextRound > totalRounds) {
+            await update(ref(db, `lobbies/${code}/game`), {
+                phase: "complete",
+            });
+            router.push(`/gameResults/${code}`);
+            return;
         }
 
-        const updatedPlayers = game.players.map((p) => ({
-            ...p,
-            locked: false
-        }));
+        // Unlock all players
+        const updatedPlayers = game.players.map((p) => ({ ...p, locked: false }));
 
+        // Update game node with new round, phase, timer, and reset lockedCount.
         await update(ref(db, `lobbies/${code}/game`), {
             round: nextRound,
             phase: nextPhase,
             players: updatedPlayers,
-            results: {
-                ...results,
-                [roundKey]: newRoundData
-            },
+            lockedCount: 0,
             timer: Date.now() + 60000,
-            lockedCount: 0
         });
 
         socket.emit("update_game_state", {
             code,
             round: nextRound,
             phase: nextPhase,
-            players: updatedPlayers
+            players: updatedPlayers,
         });
     };
 
-    if (isLoading || !game) {
-        return <div>Loading...</div>;
-    }
 
-    const { phase, timer, players, round, totalRounds } = game;
-    const myPlayer = players.find((p: Player) => p.id === myPlayerId);
-    const timeLeftInSeconds = convertTimestampToSeconds(timer);
+    const timeLeftInSeconds = convertTimestampToSeconds(game.timer);
 
     return (
-        <main className="min-h-screen flex flex-col items-center p-4">
-            <h1 className="text-2xl font-bold mb-2">
-                Round {round} / {totalRounds}
-            </h1>
-            <h2 className="text-xl mb-4">Phase: {phase.toUpperCase()}</h2>
+        <main className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-blue-300 via-green-900 to-blue-300 text-foreground">
+            <h1 className="text-xl font-semibold">Round {game.round} / {game.totalRounds}</h1>
+            <h2 className="text-xl font-semibold">Phase: {game.phase.toUpperCase()}</h2>
 
-            {phase === "drawing" && myPlayer && (
+            {game.phase === "drawing" && (
                 <Whiteboard
                     timer={timeLeftInSeconds}
-                    prompt={myPlayer.prompt}
-                    isLocked={myPlayer.locked}
-                    onLock={handleRoundComplete}
+                    prompt={lastPrompt} // Display the prompt from the chain's last entry
+                    isLocked={game.players.find((p) => p.id === myPlayerId)?.locked || false}
+                    onLock={handleDrawingSubmission}
                 />
             )}
-            {phase === "guessing" && (
+            {game.phase === "guessing" && (
                 <GamePrompt
                     timer={timeLeftInSeconds}
-                    onComplete={handleRoundComplete}
+                    onComplete={handlePromptSubmission}
+                    image={lastImage} // Display the image from the chain's last entry
                 />
-            )}
-
-            {phase !== "complete" && (
-                <button
-                    onClick={handleRoundComplete}
-                    className="bg-gray-300 px-4 py-2 rounded mt-4"
-                >
-                    Force Next Round
-                </button>
             )}
         </main>
     );

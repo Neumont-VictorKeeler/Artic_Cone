@@ -1,17 +1,35 @@
 ﻿"use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { toast } from "react-hot-toast";
-import {ref, update, get, remove, onValue} from "firebase/database";
+import { ref, update, get, remove, onValue } from "firebase/database";
 import socket from "@/lib/socket";
 import useLobby from "@/hooks/useLobby";
-import useGameStart from "@/hooks/useGameStart";
 import LobbyHeader from "@/components/LobbyHeader";
 import PlayerList from "@/components/PlayerList";
 import LobbyControls from "@/components/LobbyControls";
 import LobbyCountdown from "@/components/LobbyCountdown";
+import useGameStart from "@/hooks/useGameStart";
+import {initializeGame} from "@/hooks/gameUtils";
+
+interface PlayerResults {
+    [key: string]: {
+        image: string;
+        prompt: string;
+    };
+}
+
+interface Players {
+    [key: string]: {
+        id: string;
+        locked: boolean;
+        // Other lobby info like isHost and name
+        isHost?: boolean;
+        name?: string;
+    };
+}
 
 export default function LobbyPage() {
     const params = useParams();
@@ -31,19 +49,19 @@ export default function LobbyPage() {
         }
     }, []);
 
+    // If gameState is already started, go to game page.
     useEffect(() => {
         if (!code) return;
         const lobbyRef = ref(db, `lobbies/${code}`);
         onValue(lobbyRef, (snapshot) => {
             const data = snapshot.val();
-            if (data.gameState === "started") {
+            if (data && data.gameState === "started") {
                 router.push(`/gamePage/${code}`);
             }
         });
     }, [code, router]);
 
-
-    const { players, isHost, countdown, kickPlayer, makeHost, resetDeletionTimer } = useLobby(code);
+    const { players, isHost, countdown, kickPlayer, makeHost } = useLobby(code);
 
     const handleDeleteLobby = async () => {
         if (!code) return;
@@ -52,47 +70,15 @@ export default function LobbyPage() {
         router.push("/");
     };
 
-
     const handleStartGame = async () => {
         if (!code) return;
 
-        // 1. Fetch random prompts from the database
-        const promptsRef = ref(db, "prompts");
-        const snapshot = await get(promptsRef);
-        const prompts = snapshot.val();
-
-        // 2. Check if prompts are available
-        if (!prompts) {
-            toast.error("No prompts available in the database.");
-            return;
+        try {
+            await initializeGame(code, players);
+            router.push(`/gamePage/${code}`);
+        } catch (error) {
+            toast.error("Failed to start the game: " + error.message);
         }
-
-        const promptList = Object.values(prompts);
-        // Shuffle them
-        const shuffledPrompts = promptList.sort(() => 0.5 - Math.random());
-
-        // 3. Assign each player an initial prompt
-        const playerPrompts = players.map((player, index) => ({
-            ...player,
-            prompt: shuffledPrompts[index % shuffledPrompts.length],
-        }));
-
-        // 4. Build the initial "game" node
-        const totalRounds = players.length;
-        await update(ref(db, `lobbies/${code}`), {
-            game: {
-                round: 1,
-                totalRounds,
-                phase: "drawing",
-                players: playerPrompts,
-                results: {},
-                timer: Date.now() + 60000 // <--- 1 minute from now
-            },
-            gameState: "started",
-        });
-
-        socket.emit("start_game", { code });
-        router.push(`/gamePage/${code}`);
     };
 
     const handleLeaveLobby = async () => {
@@ -105,11 +91,7 @@ export default function LobbyPage() {
         router.push("/");
     };
 
-    useGameStart(); // listens for "start_game" socket event
-
-    // ...the rest of your Lobby UI code (rendering players, host controls, etc.)...
-    // e.g., your <LobbyHeader>, <PlayerList>, etc.
-
+    useGameStart();
 
     return (
         <main className="flex flex-col items-center justify-center h-screen bg-gradient-to-r from-blue-300 via-green-900 to-blue-300 text-foreground">
@@ -131,7 +113,7 @@ export default function LobbyPage() {
                         isHost={isHost}
                         onStartGame={handleStartGame}
                         onDeleteLobby={handleDeleteLobby}
-                        onLeaveLobby={handleLeaveLobby} 
+                        onLeaveLobby={handleLeaveLobby}
                     />
                 </>
             ) : (
