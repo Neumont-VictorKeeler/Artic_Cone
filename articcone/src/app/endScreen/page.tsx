@@ -87,8 +87,8 @@ const EndScreen: React.FC = () => {
       {
         images: frames,
         interval: 0.7,
-        gifWidth: 300,
-        gifHeight: 300
+        gifWidth: 400,
+        gifHeight: 400
       },
       (obj: { error: any; image: React.SetStateAction<string | null>; }) => {
         setIsGenerating(false);
@@ -103,20 +103,22 @@ const EndScreen: React.FC = () => {
   };
 
   if (isLoading) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+    return <div className="flex justify-center items-center h-screen text-lg font-semibold">Loading...</div>;
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar */}
-      <div className="w-1/4 p-4 border-r bg-white shadow-md">
-        <h2 className="text-xl font-semibold mb-4">Players</h2>
-        <div className="space-y-2">
+      <div className="w-1/4 p-6 bg-white shadow-md border-r">
+        <h2 className="text-2xl font-bold mb-4 text-gray-800">Players</h2>
+        <div className="space-y-3">
           {gameData.players.map((playerId: string) => (
             <div
               key={playerId}
-              className={`p-3 rounded-lg cursor-pointer transition ${
-                selectedPlayer === playerId ? "bg-blue-500 text-white" : "hover:bg-gray-200"
+              className={`p-3 rounded-lg cursor-pointer text-center text-lg font-medium transition ${
+                selectedPlayer === playerId
+                  ? "bg-blue-500 text-white shadow-md"
+                  : "bg-gray-200 hover:bg-gray-300"
               }`}
               onClick={() => setSelectedPlayer(playerId)}
             >
@@ -127,27 +129,27 @@ const EndScreen: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex flex-col flex-grow p-6 items-center">
-        <h1 className="text-3xl font-bold mb-6">Drawing Chain</h1>
+      <div className="flex flex-col flex-grow p-8 items-center">
+        <h1 className="text-4xl font-bold text-gray-800 mb-8">🎨 Drawing Chain</h1>
 
         {error && (
-          <div className="p-4 mb-4 bg-red-100 text-red-700 rounded-md">
+          <div className="p-4 mb-6 bg-red-100 text-red-700 rounded-lg shadow-md">
             ⚠️ Failed to load real game data. Using sample data instead.
           </div>
         )}
 
-        <div className="space-y-6 w-full max-w-lg">
+        <div className="space-y-8 w-full max-w-2xl">
           {Object.entries(gameData.results).map(([roundName, round]: any) => {
             const playerData = selectedPlayer ? round[selectedPlayer] : null;
             if (!playerData) return null;
 
             return (
-              <div key={roundName} className="bg-white p-4 rounded-lg shadow-md flex flex-col items-center">
-                <h2 className="text-xl font-semibold mb-3">{playerData.prompt}</h2>
+              <div key={roundName} className="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center">
+                <h2 className="text-2xl font-semibold mb-3 text-gray-700">{playerData.prompt}</h2>
                 <img
                   src={playerData.image}
                   alt={`Image for ${playerData.prompt}`}
-                  className="w-80 h-80 object-cover rounded-lg"
+                  className="w-96 h-96 object-cover rounded-lg border-4 border-gray-300 shadow-md"
                 />
               </div>
             );
@@ -156,22 +158,31 @@ const EndScreen: React.FC = () => {
 
         {/* Generate GIF Button */}
         {gifUrl ? (
-          <div className="mt-6">
-            <h2 className="text-xl font-semibold mb-3">Generated GIF:</h2>
-            <img src={gifUrl} alt="Generated GIF" className="w-80 h-80 object-cover rounded-lg" />
+          <div className="mt-6 text-center">
+            <h2 className="text-2xl font-semibold mb-3 text-gray-700">Generated GIF:</h2>
+            <img src={gifUrl} alt="Generated GIF" className="w-96 h-96 object-cover rounded-lg shadow-md" />
+            <div className="mt-4">
+              <a
+            href={gifUrl}
+            download="drawing_chain.gif"
+            className="bg-green-500 text-white px-6 py-2 rounded-lg shadow-md hover:bg-green-600 transition"
+              >
+            Download GIF
+              </a>
+            </div>
           </div>
         ) : (
           <button
             onClick={generateGif}
-            className="mt-6 bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+            className="mt-8 bg-blue-500 text-white text-lg px-8 py-3 rounded-lg shadow-md hover:bg-blue-700 transition disabled:opacity-50"
             disabled={isGenerating}
           >
-            {isGenerating ? "Generating..." : "Create GIF"}
+            {isGenerating ? "Generating..." : "🎥 Create GIF"}
           </button>
         )}
-      </div>
-    </div>
-  );
-};
+          </div>
+        </div>
+      );
+    };
 
-export default EndScreen;
+    export default EndScreen;
