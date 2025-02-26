@@ -35,4 +35,7 @@ const PromptInput = React.forwardRef((props: PromptInputProps, ref: React.Ref<un
     );
 });
 
+
+PromptInput.displayName = "PromptInput";
+
 export default PromptInput;

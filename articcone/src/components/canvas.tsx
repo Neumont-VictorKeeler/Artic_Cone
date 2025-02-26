@@ -261,4 +261,6 @@ filledImage.onload = () => {
   );
 });
 
+Canvas.displayName = "Canvas";
+
 export default Canvas;
