@@ -34,7 +34,12 @@ export default function GamePrompt({ timer, onComplete }: GamePromptProps) {
     }, [timeLeft, locked, onComplete, promptValue]);
 
     const handleLockClick = () => {
+        console.log(locked);
         if (!locked) {
+            userInputBox.current.setDisabled(true);
+            setLocked(true);
+            setButtonDisabled(true);
+            
             onComplete(promptValue);
         }
     };
@@ -63,7 +68,7 @@ export default function GamePrompt({ timer, onComplete }: GamePromptProps) {
             <button
                 onClick={handleLockClick}
                 disabled={buttonDisabled}
-                className="bg-red-600 w-32 mx-auto mt-4 p-2 text-white rounded"
+                className="bg-red-600 w-32 mx-auto mt-1 p-2 text-white rounded"
             >
                 {locked ? "Locked" : "Lock"}
             </button>

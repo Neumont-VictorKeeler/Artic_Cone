@@ -94,6 +94,7 @@ export default function GamePage() {
         const playerKey = `player_${myPlayerId}`;
         const playerIndex = game.players.findIndex(p => p.id === myPlayerId);
         if (playerIndex === -1) return;
+        await update(ref(db, `lobbies/${code}/game/players/${playerIndex}/`), { locked: true });
         const currentResult = game.results?.[playerKey]?.chain || [];
         currentResult.push({ prompt: promptValue, image: "" });
 
