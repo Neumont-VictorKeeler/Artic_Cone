@@ -11,7 +11,7 @@ type PlayerResults = {
     };
 };
 
-type Game = {
+export type Game = {
     round: number;
     totalRounds: number;
     phase: string;
@@ -21,6 +21,7 @@ type Game = {
             chain: Array<{ prompt: string; image: string }>;
         };
     };
+    timer: number;
 };
 
 export async function initializeGame(code: string, players: Player[]) {

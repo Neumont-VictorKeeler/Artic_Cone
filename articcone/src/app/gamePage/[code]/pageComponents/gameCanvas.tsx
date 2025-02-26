@@ -5,6 +5,7 @@ import Canvas from "@/components/canvas";
 import Lockscreen from "@/components/lockscreen";
 import { ProgressBar } from "@/components/ProgressBar";
 import { Button } from "@/components/ui/button";
+import { Console } from "console";
 
 interface WhiteboardProps {
     timer: number;
@@ -47,8 +48,10 @@ export default function Whiteboard({ timer, prompt, isLocked, onLock }: Whiteboa
     }, [isLocked]);
 
     const handleLockClick = () => {
+        console.log(isLocked);
         const imageData = canvasRef.current?.getIMG();
         onLock(imageData);
+        console.log(isLocked);
     };
 
     return (
@@ -68,7 +71,7 @@ export default function Whiteboard({ timer, prompt, isLocked, onLock }: Whiteboa
             <div className="relative w-full mx-1">
                 <ProgressBar
                     className="w-3/4 min-h-[12px] bg-white border-2 border-black rounded-lg mt-4"
-                    duration={timeLeft}
+                    duration={100000}
                     onComplete={handleLockClick}
                 />
 

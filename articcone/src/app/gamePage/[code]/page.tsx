@@ -24,12 +24,10 @@ export default function GamePage() {
     const [game, setGame] = useState<Game | null>(null);
     const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-
     useEffect(() => {
         setMyPlayerId(localStorage.getItem("playerId") || null);
     }, []);
 
-    // Listen to the game node.
     useEffect(() => {
         if (!code) return;
         const gameRef = ref(db, `lobbies/${code}/game`);
@@ -51,14 +49,13 @@ export default function GamePage() {
 
     useEffect(() => {
         if (!game || !myPlayerId) return;
-        const me = game.players?.find((p) => p.id === myPlayerId);
+        const me =Array.isArray(game?.players) ? game.players.find(p => p.id === myPlayerId) : null;
         if (!me) {
             toast.error("You are not in this game.");
             router.push("/");
         }
     }, [game, myPlayerId, router]);
 
-    // Get the current prompt from results when in drawing phase.
     let currentPrompt = "";
     if (game?.phase === "drawing" && myPlayerId) {
         const roundResults = game.results?.[`player_${myPlayerId}`]?.chain;
@@ -67,51 +64,47 @@ export default function GamePage() {
         }
     }
 
-    // Called when a user submits a drawing.
     const handleDrawingSubmission = async (imageData: string) => {
         if (!game || !myPlayerId) return;
 
-        const updatedPlayers = game.players.map((p) =>
+        const updatedPlayers = game.players.map((p: Player) =>
             p.id === myPlayerId ? { ...p, locked: true } : p
         );
         const lockedCount = updatedPlayers.filter((p) => p.locked).length;
-
         const playerKey = `player_${myPlayerId}`;
-
+        const playerIndex = game.players.findIndex(p => p.id === myPlayerId);
+        if (playerIndex === -1) return;
+        await update(ref(db, `lobbies/${code}/game/players/${playerIndex}/`), { locked: true });
         const currentResult = game.results?.[playerKey]?.chain || [];
         currentResult[game.round - 1].image = imageData;
 
-        await update(ref(db, `lobbies/${code}/game/results/${playerKey}/chain`), currentResult);
-        await update(ref(db, `lobbies/${code}/game`), { lockedCount });
-
+        await update(ref(db, `lobbies/${code}/game/results/${playerKey}`), { chain: currentResult });
+        await update(ref(db, `lobbies/${code}/game`), { lockedCount: lockedCount });
         if (lockedCount === game.players.length) {
             handleRoundComplete();
         }
     };
 
-    // Called when a user submits a prompt guess.
     const handlePromptSubmission = async (promptValue: string) => {
         if (!game || !myPlayerId) return;
 
-        const updatedPlayers = game.players.map((p) =>
-            p.id === myPlayerId ? { ...p, locked: true } : p
-        );
+        const updatedPlayers = game.players.map((p) => (p.id === myPlayerId ? { ...p, locked: true } : p));
         const lockedCount = updatedPlayers.filter((p) => p.locked).length;
 
         const playerKey = `player_${myPlayerId}`;
-
+        const playerIndex = game.players.findIndex(p => p.id === myPlayerId);
+        if (playerIndex === -1) return;
         const currentResult = game.results?.[playerKey]?.chain || [];
         currentResult.push({ prompt: promptValue, image: "" });
 
-        await update(ref(db, `lobbies/${code}/game/results/${playerKey}/chain`), currentResult);
-        await update(ref(db, `lobbies/${code}/game`), { lockedCount });
+        await update(ref(db, `lobbies/${code}/game/results/${playerKey}`), { chain: currentResult });
+        await update(ref(db, `lobbies/${code}/game`), { lockedCount: lockedCount });
 
         if (lockedCount === game.players.length) {
             handleRoundComplete();
         }
     };
 
-    // Advance the round or phase when all players are locked.
     const handleRoundComplete = async () => {
         if (!game || !myPlayerId) return;
         const { round, totalRounds, phase, players } = game;
@@ -129,7 +122,7 @@ export default function GamePage() {
             }
         }
 
-        const updatedPlayers = players.map((p) => ({ ...p, locked: false }));
+        const updatedPlayers = players.map((p: any) => ({ ...p, locked: false }));
 
         await update(ref(db, `lobbies/${code}/game`), {
             round: nextRound,
@@ -156,9 +149,7 @@ export default function GamePage() {
 
     return (
         <main className="flex flex-col items-center justify-center h-screen bg-gradient-to-r from-blue-300 via-green-900 to-blue-300 text-foreground">
-            <h1 className="text-xl font-semibold">
-                Round {round} / {totalRounds}
-            </h1>
+            <h1 className="text-xl font-semibold">Round {round} / {totalRounds}</h1>
             <h2 className="text-xl font-semibold">Phase: {phase.toUpperCase()}</h2>
 
             {phase === "drawing" && (
