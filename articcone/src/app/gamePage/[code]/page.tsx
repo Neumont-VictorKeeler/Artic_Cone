@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { ref, onValue, update } from "firebase/database";
 import { db } from "@/lib/firebase";
 import { useRouter, useParams } from "next/navigation";
@@ -8,13 +8,37 @@ import { toast } from "react-hot-toast";
 import socket from "@/lib/socket";
 import Whiteboard from "./pageComponents/gameCanvas";
 import GamePrompt from "./pageComponents/gamePrompt";
-import { Player } from "@/hooks/useLobby";
-import { Game } from "@/hooks/gameUtils";
+import EndScreen from "@/components/Endscreen";
 
-function convertTimestampToSeconds(timestamp: number): number {
-    const currentTime = Date.now();
-    const diffMs = timestamp - currentTime;
-    return Math.floor(diffMs / 1000);
+// Updated helper: rotate backwards so that each round a player works on the chain of the player before them.
+function getChainOwnerIndex(myIndex: number, round: number, totalPlayers: number) {
+    return ((myIndex - (round - 1)) % totalPlayers + totalPlayers) % totalPlayers;
+}
+
+function convertTimestampToSeconds(timestamp: number) {
+    const now = Date.now();
+    return Math.max(0, Math.floor((timestamp - now) / 1000));
+}
+
+interface ChainEntry {
+    prompt?: string;
+    image?: string;
+}
+
+interface Player {
+    id: string;
+    locked: boolean;
+    name?: string;
+}
+
+interface Game {
+    phase: "drawing" | "guessing" | "complete";
+    round: number;
+    totalRounds: number;
+    timer: number;
+    lockedCount: number;
+    players: Player[];
+    results: Record<string, { chain: ChainEntry[] }>;
 }
 
 export default function GamePage() {
@@ -24,6 +48,7 @@ export default function GamePage() {
     const [game, setGame] = useState<Game | null>(null);
     const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+
     useEffect(() => {
         setMyPlayerId(localStorage.getItem("playerId") || null);
     }, []);
@@ -31,13 +56,13 @@ export default function GamePage() {
     useEffect(() => {
         if (!code) return;
         const gameRef = ref(db, `lobbies/${code}/game`);
-        return onValue(gameRef, (snapshot) => {
+        const unsub = onValue(gameRef, (snapshot) => {
             if (!snapshot.exists()) {
                 toast.error("Game not found or deleted.");
                 router.push("/");
                 return;
             }
-            const data = snapshot.val();
+            const data = snapshot.val() as Game;
             setGame(data);
             setIsLoading(false);
 
@@ -45,61 +70,89 @@ export default function GamePage() {
                 router.push(`/gameResults/${code}`);
             }
         });
+        return () => unsub();
     }, [code, router]);
 
     useEffect(() => {
         if (!game || !myPlayerId) return;
-        const me =Array.isArray(game?.players) ? game.players.find(p => p.id === myPlayerId) : null;
-        if (!me) {
+        const inGame = game.players.some((p) => p.id === myPlayerId);
+        if (!inGame) {
             toast.error("You are not in this game.");
             router.push("/");
         }
     }, [game, myPlayerId, router]);
 
-    let currentPrompt = "";
-    if (game?.phase === "drawing" && myPlayerId) {
-        const roundResults = game.results?.[`player_${myPlayerId}`]?.chain;
-        if (roundResults && roundResults[game.round - 1]) {
-            currentPrompt = roundResults[game.round - 1].prompt;
-        }
+    if (isLoading || !game) {
+        return <div>Loading...</div>;
     }
 
-    const handleDrawingSubmission = async (imageData: string) => {
-        if (!game || !myPlayerId) return;
+    // Determine my index in the players array.
+    let myIndex = -1;
+    if (game.players && myPlayerId) {
+        myIndex = game.players.findIndex((p) => p.id === myPlayerId);
+    }
 
-        const updatedPlayers = game.players.map((p: Player) =>
+    let chainOwnerId: string | null = null;
+    let lastEntry: ChainEntry | null = null;
+    if (game && myIndex !== -1) {
+        const chainOwnerIndex = getChainOwnerIndex(myIndex, game.round, game.players.length);
+        chainOwnerId = game.players[chainOwnerIndex].id;
+        const chainKey = `player_${chainOwnerId}`;
+        const chainData = game.results?.[chainKey]?.chain || [];
+        lastEntry = chainData.length > 0 ? chainData[chainData.length - 1] : null;
+    }
+
+    const lastPrompt = lastEntry?.prompt || "";
+    const lastImage = lastEntry?.image || "";
+
+    const handleDrawingSubmission = async (imageData: string) => {
+        if (!game || myIndex === -1 || !chainOwnerId) return;
+
+        const updatedPlayers = game.players.map((p) =>
             p.id === myPlayerId ? { ...p, locked: true } : p
         );
         const lockedCount = updatedPlayers.filter((p) => p.locked).length;
-        const playerKey = `player_${myPlayerId}`;
-        const playerIndex = game.players.findIndex(p => p.id === myPlayerId);
-        if (playerIndex === -1) return;
-        await update(ref(db, `lobbies/${code}/game/players/${playerIndex}/`), { locked: true });
-        const currentResult = game.results?.[playerKey]?.chain || [];
-        currentResult[game.round - 1].image = imageData;
 
-        await update(ref(db, `lobbies/${code}/game/results/${playerKey}`), { chain: currentResult });
-        await update(ref(db, `lobbies/${code}/game`), { lockedCount: lockedCount });
+        const chainKey = `player_${chainOwnerId}`;
+        const chainData = game.results[chainKey]?.chain || [];
+        // In drawing phase, add a new entry with the drawing.
+        chainData.push({ image: imageData });
+
+        await update(ref(db, `lobbies/${code}/game/results/${chainKey}`), {
+            chain: chainData,
+        });
+
+        await update(ref(db, `lobbies/${code}/game`), {
+            players: updatedPlayers,
+            lockedCount,
+        });
+
         if (lockedCount === game.players.length) {
             handleRoundComplete();
         }
     };
 
     const handlePromptSubmission = async (promptValue: string) => {
-        if (!game || !myPlayerId) return;
+        if (!game || myIndex === -1 || !chainOwnerId) return;
 
-        const updatedPlayers = game.players.map((p) => (p.id === myPlayerId ? { ...p, locked: true } : p));
+        const updatedPlayers = game.players.map((p) =>
+            p.id === myPlayerId ? { ...p, locked: true } : p
+        );
         const lockedCount = updatedPlayers.filter((p) => p.locked).length;
 
-        const playerKey = `player_${myPlayerId}`;
-        const playerIndex = game.players.findIndex(p => p.id === myPlayerId);
-        if (playerIndex === -1) return;
-        await update(ref(db, `lobbies/${code}/game/players/${playerIndex}/`), { locked: true });
-        const currentResult = game.results?.[playerKey]?.chain || [];
-        currentResult.push({ prompt: promptValue, image: "" });
+        const chainKey = `player_${chainOwnerId}`;
+        const chainData = game.results[chainKey]?.chain || [];
+        // In guessing phase, add a new entry with the prompt.
+        chainData.push({ prompt: promptValue });
 
-        await update(ref(db, `lobbies/${code}/game/results/${playerKey}`), { chain: currentResult });
-        await update(ref(db, `lobbies/${code}/game`), { lockedCount: lockedCount });
+        await update(ref(db, `lobbies/${code}/game/results/${chainKey}`), {
+            chain: chainData,
+        });
+
+        await update(ref(db, `lobbies/${code}/game`), {
+            players: updatedPlayers,
+            lockedCount,
+        });
 
         if (lockedCount === game.players.length) {
             handleRoundComplete();
@@ -107,9 +160,7 @@ export default function GamePage() {
     };
 
     const handleRoundComplete = async () => {
-        if (!game || !myPlayerId) return;
-        const { round, totalRounds, phase, players } = game;
-
+        const { phase, round, totalRounds } = game;
         let nextPhase = phase;
         let nextRound = round;
         if (phase === "drawing") {
@@ -123,14 +174,14 @@ export default function GamePage() {
             }
         }
 
-        const updatedPlayers = players.map((p: any) => ({ ...p, locked: false }));
+        const updatedPlayers = game.players.map((p) => ({ ...p, locked: false }));
 
         await update(ref(db, `lobbies/${code}/game`), {
             round: nextRound,
             phase: nextPhase,
             players: updatedPlayers,
-            timer: Date.now() + 60000,
             lockedCount: 0,
+            timer: Date.now() + 60000,
         });
 
         socket.emit("update_game_state", {
@@ -139,32 +190,32 @@ export default function GamePage() {
             phase: nextPhase,
             players: updatedPlayers,
         });
+
+        if (nextPhase === "complete") {
+            router.push(`/gameResults/${code}`);
+        }
     };
 
-    if (isLoading || !game) {
-        return <div>Loading...</div>;
-    }
-
-    const { phase, timer, round, totalRounds } = game;
-    const timeLeftInSeconds = convertTimestampToSeconds(timer);
+    const timeLeftInSeconds = convertTimestampToSeconds(game.timer);
 
     return (
-        <main className="flex flex-col items-center justify-center h-screen bg-gradient-to-r from-blue-300 via-green-900 to-blue-300 text-foreground">
-            <h1 className="text-xl font-semibold">Round {round-1}/{totalRounds}</h1>
-            <h2 className="text-xl font-semibold">Phase: {phase.toUpperCase()}</h2>
+        <main className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-blue-300 via-green-900 to-blue-300 text-foreground">
+            <h1 className="text-xl font-semibold">Round {game.round} / {game.totalRounds}</h1>
+            <h2 className="text-xl font-semibold">Phase: {game.phase.toUpperCase()}</h2>
 
-            {phase === "drawing" && (
+            {game.phase === "drawing" && (
                 <Whiteboard
                     timer={timeLeftInSeconds}
-                    prompt={currentPrompt}
+                    prompt={lastPrompt} // Display the prompt from the chain's last entry
                     isLocked={game.players.find((p) => p.id === myPlayerId)?.locked || false}
                     onLock={handleDrawingSubmission}
                 />
             )}
-            {phase === "guessing" && (
+            {game.phase === "guessing" && (
                 <GamePrompt
                     timer={timeLeftInSeconds}
                     onComplete={handlePromptSubmission}
+                    image={lastImage} // Display the image from the chain's last entry
                 />
             )}
         </main>

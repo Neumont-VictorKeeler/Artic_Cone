@@ -5,7 +5,6 @@ import Canvas from "@/components/canvas";
 import Lockscreen from "@/components/lockscreen";
 import { ProgressBar } from "@/components/ProgressBar";
 import { Button } from "@/components/ui/button";
-import { Console } from "console";
 
 interface WhiteboardProps {
     timer: number;
@@ -19,12 +18,11 @@ export default function Whiteboard({ timer, prompt, isLocked, onLock }: Whiteboa
     const [timeLeft, setTimeLeft] = useState(timer);
 
     useEffect(() => {
-        if (timeLeft <= 0) {
+        if (timeLeft <= 0 && !isLocked) {
             const imageData = canvasRef.current?.getIMG();
             onLock(imageData);
             return;
         }
-
         const interval = setInterval(() => {
             setTimeLeft((prev) => {
                 if (prev <= 1) {
@@ -35,9 +33,8 @@ export default function Whiteboard({ timer, prompt, isLocked, onLock }: Whiteboa
                 return prev - 1;
             });
         }, 1000);
-
         return () => clearInterval(interval);
-    }, [timeLeft, onLock]);
+    }, [timeLeft, isLocked, onLock]);
 
     useEffect(() => {
         if (isLocked) {
@@ -48,10 +45,8 @@ export default function Whiteboard({ timer, prompt, isLocked, onLock }: Whiteboa
     }, [isLocked]);
 
     const handleLockClick = () => {
-        console.log(isLocked);
         const imageData = canvasRef.current?.getIMG();
         onLock(imageData);
-        console.log(isLocked);
     };
 
     return (
