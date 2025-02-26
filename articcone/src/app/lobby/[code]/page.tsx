@@ -76,7 +76,7 @@ export default function LobbyPage() {
         try {
             await initializeGame(code, players);
             router.push(`/gamePage/${code}`);
-        } catch (error) {
+        } catch (error : any) {
             toast.error("Failed to start the game: " + error.message);
         }
     };
@@ -117,8 +117,7 @@ export default function LobbyPage() {
                     />
                 </>
             ) : (
-                <p className="text-lg text-red-500">Loading lobby...</p>
-            )}
+                <p className="text-lg text-red-500">Loading lobby...</p>)}
         </main>
     );
 }

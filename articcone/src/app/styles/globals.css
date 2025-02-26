@@ -3,10 +3,26 @@
 @tailwind utilities;
 body {
   font-family: Arial, Helvetica, sans-serif;
-  background: linear-gradient(to right, #00f, #0f0, #00f);
+  background: linear-gradient(to right, #93c5fd, #065f46, #93c5fd);
   background-size: cover;
   background-repeat: repeat;
   background-attachment: fixed;
+  color: var(--foreground); /* Ensure text color matches the foreground color */
+}
+h1 {
+  font-size: 2rem; /* Adjusted to a valid size */
+  font-weight: bold;
+  background: linear-gradient(to bottom, white, #93c5fd);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+p {
+  font-size: 1.25rem; /* Adjusted to a valid size */
+  font-weight: 600; /* Adjusted to a valid weight */
+  background: linear-gradient(to bottom, white, #93c5fd);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 @layer base {

@@ -82,7 +82,7 @@ export default function GamePage() {
     }, [game, myPlayerId, router]);
 
     if (isLoading || !game) {
-        return <div>Loading...</div>;
+        return <div className="flex items-center justify-center h-screen"><p>Loading...</p></div>;
     }
 
     // Determine my index in the players array.
