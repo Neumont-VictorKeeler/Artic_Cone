@@ -52,7 +52,7 @@ export default function Whiteboard({ timer, prompt, isLocked, onLock }: Whiteboa
     return (
         <main className="w-full h-screen flex flex-col items-center overflow-hidden">
             <div className="flex bg-white shadow-lg rounded-lg justify-center p-4 w-3/4 max-w-lg text-center border-2 border-black m-2">
-                <h1 className="text-2xl font-bold">Prompt: {prompt}</h1>
+                <h2 className="text-2xl font-bold text-amber-900">{prompt}</h2>
             </div>
 
             <Button

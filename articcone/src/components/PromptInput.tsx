@@ -29,7 +29,7 @@ const PromptInput = React.forwardRef((props: PromptInputProps, ref: React.Ref<un
             type="text"
             value={value}
             onChange={onChange}
-            className="flex w-3/4 mx-auto mb-2 mt-2 bg-white border-2 border-black"
+            className="flex w-3/4 mx-auto mb-2 mt-2 bg-white border-2 border-black text-amber-900"
             placeholder="Enter prompt here"
         />
     );

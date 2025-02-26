@@ -205,7 +205,7 @@ export default function GamePage() {
     return (
         <main className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-blue-300 via-green-900 to-blue-300 text-foreground">
             <h1 className="text-xl font-semibold">Round {game.round} / {game.totalRounds}</h1>
-            <h2 className="text-xl font-semibold">Phase: {game.phase.toUpperCase()}</h2>
+            <h1 className="text-xl font-semibold">Phase: {game.phase.toUpperCase()}</h1>
 
             {game.phase === "drawing" && (
                 <Whiteboard
