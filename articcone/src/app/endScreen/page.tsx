@@ -3,91 +3,146 @@
 import React, { useState } from "react";
 const gifshot = require("gifshot");
 
-const players = [
-    {
-        name: "Player 1",
-        promptsAndImages: [
-        { prompt: "Prompt 1", imageUrl: "/sampleImage1.jpg" },
-        { prompt: "Prompt 2", imageUrl: "/sampleImage3.jpg" },
-        ],
+// Sample Data Mimicking Firebase Structure
+const sampleData = {
+    players: {
+        "player1": { name: "Player 1", isHost: true },
+        "player2": { name: "Player 2", isHost: false },
     },
-    {
-        name: "Player 2",
-        promptsAndImages: [
-        { prompt: "Prompt 3", imageUrl: "/sampleImage2.jpg" },
-        { prompt: "Prompt 4", imageUrl: "/sampleImage4.png" },
-        ],
+    game: {
+        results: {
+        round1: {
+            player1: {
+            image1: "/sampleImage1.jpg",
+            image2: "/sampleImage2.jpg",
+            prompt1: "What an image!",
+            promptRandom: "Haha goofy phrase",
+            },
+            player2: {
+            image1: "/sampleImage3.jpg",
+            prompt1: "There is an image!",
+            promptRandom: "Silly phrase",
+            },
+        },
+        round2: {
+            player1: {
+            image1: "/sampleImage4.png",
+            prompt1: "Another masterpiece!",
+            promptRandom: "Funny caption",
+            },
+            player2: {
+                image1: "/sampleImage2.jpg",
+                prompt1: "What is this?",
+                promptRandom: "I am confused",
+            },
+        },
+        },
     },
-];
-
-const styles = {
-    container: "flex",
-    menu: "w-1/4 p-4 border-r",
-    menuItem: "cursor-pointer p-2 hover:bg-gray-200",
-    content: "flex flex-col gap-4 w-3/4 p-4",
-    section: "flex flex-col items-center",
-    prompt: "text-2xl font-bold mb-2",
-    image: "w-96 h-96 object-cover mb-4",
-    button: "mt-4 px-4 py-2 bg-blue-500 text-white rounded cursor-pointer hover:bg-blue-700",
 };
 
 const EndScreen: React.FC = () => {
-    const [selectedPlayerIndex, setSelectedPlayerIndex] = useState(0);
+    const players = Object.entries(sampleData.players).map(([id, info]) => ({
+        id,
+        name: info.name,
+    }));
+
+    const results = sampleData.game.results;
+    const [selectedPlayer, setSelectedPlayer] = useState(players[0].id);
     const [gifUrl, setGifUrl] = useState<string | null>(null);
+    const [isGenerating, setIsGenerating] = useState(false);
 
-    const createGif = () => {
-        const images = players[selectedPlayerIndex].promptsAndImages.map(
-        (item) => item.imageUrl
-        );
-
-        gifshot.createGIF(
-        {
-            images: images,
-            gifWidth: 300,
-            gifHeight: 300,
-            interval: 0.5,
-        },
-        (obj: { error: boolean; image: string }) => {
-            if (!obj.error) {
-            setGifUrl(obj.image);
-            }
-        }
-        );
+    const handlePlayerSwitch = (playerId: string) => {
+        setSelectedPlayer(playerId);
+        setGifUrl(null); // Reset GIF when switching players
+        setIsGenerating(false);
     };
 
+    const createGif = () => {
+        setIsGenerating(true);
+        const images: string[] = [];
+
+        Object.values(results).forEach((round: any) => {
+            if (round[selectedPlayer]) {
+                images.push(round[selectedPlayer].image1);
+            }
+            });
+
+            gifshot.createGIF(
+            {
+                images: images,
+                gifWidth: 300,
+                gifHeight: 300,
+                interval: 0.5,
+            },
+            (obj: { error: boolean; image: string }) => {
+                setIsGenerating(false);
+                if (!obj.error) {
+                setGifUrl(obj.image);
+                }
+            }
+            );
+        };
+
     return (
-        <div className={styles.container}>
-        <div className={styles.menu}>
-            {players.map((player, index) => (
-            <div
-            key={index}
-            className={styles.menuItem}
-            onClick={() => setSelectedPlayerIndex(index)}
-            >
-            {player.name}
+        <div className="flex h-screen bg-gray-100 relative z-10">
+            {/* Sidebar for Player Selection */}
+            <div className="w-1/4 p-4 border-r bg-white shadow-md">
+                <h2 className="text-xl font-semibold mb-4">Players</h2>
+                <div className="space-y-2">
+                {players.map((player) => (
+                    <div
+                    key={player.id}
+                    className={`p-3 rounded-lg cursor-pointer transition ${
+                        selectedPlayer === player.id ? "bg-blue-500 text-white" : "hover:bg-gray-200"
+                    }`}
+                    onClick={() => handlePlayerSwitch(player.id)}
+                    >
+                    {player.name}
+                    </div>
+                ))}
+                </div>
             </div>
-            ))}
-        </div>
-        <div className={styles.content}>
-            {players[selectedPlayerIndex].promptsAndImages.map((item, index) => (
-            <div key={index} className={styles.section}>
-            <h2 className={styles.prompt}>{item.prompt}</h2>
-            <img
-            src={item.imageUrl}
-            alt={`Image for ${item.prompt}`}
-            className={styles.image}
-            />
+
+            {/* Main Content */}
+            <div className="flex flex-col flex-grow p-6 items-center">
+                <h1 className="text-3xl font-bold mb-6">Drawing Chain</h1>
+                <div className="space-y-6 w-full max-w-lg">
+                {Object.entries(results).map(([roundName, round]: any) => {
+                    const playerData = round[selectedPlayer];
+                    if (!playerData) return null;
+
+                    return (
+                        <div key={roundName} className="bg-white p-4 rounded-lg shadow-md flex flex-col items-center">
+                            <h2 className="text-xl font-semibold mb-3">{playerData.prompt1}</h2>
+                            <img
+                            src={playerData.image1}
+                            alt={`Image for ${playerData.prompt1}`}
+                            className="w-80 h-80 object-cover rounded-lg"
+                            />
+                        </div>
+                    );
+                })}
+                </div>
+
+                {/* GIF Generation */}
+                <div className="flex flex-col items-center mt-8">
+                {!gifUrl && (
+                    <button
+                    onClick={createGif}
+                    className="px-6 py-3 bg-blue-500 text-white rounded-lg transition duration-300 transform hover:scale-105 disabled:opacity-50"
+                    disabled={isGenerating}
+                    >
+                    {isGenerating ? "Generating GIF..." : "Generate GIF"}
+                    </button>
+                )}
+                {gifUrl && (
+                    <div className="mt-6">
+                    <h2 className="text-lg font-semibold mb-2">Generated GIF</h2>
+                    <img src={gifUrl} alt="Generated GIF" className="w-80 h-80 object-cover rounded-lg shadow-md" />
+                    </div>
+                )}
+                </div>
             </div>
-            ))}
-            {!gifUrl && (
-            <button className={`${styles.button} transition duration-300 ease-in-out transform hover:scale-105`} onClick={createGif}>Generate GIF</button>
-            )}
-            {gifUrl && (
-            <div className={styles.section}>
-            <img src={gifUrl} alt="Generated GIF" className={styles.image} />
-            </div>
-            )}
-        </div>
         </div>
     );
 };
