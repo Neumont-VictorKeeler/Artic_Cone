@@ -25,7 +25,8 @@ const GameResultsPage = () => {
         return () => unsub();
     }, [code, router]);
 
-    return code ? <EndScreen code={code} /> : <div>Loading...</div>;
+    return code ? <EndScreen code={code} /> : <div className="flex items-center justify-center h-screen">
+        <p>Loading...</p></div>;
 };
 
 export default GameResultsPage;
