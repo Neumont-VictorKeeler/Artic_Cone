@@ -71,7 +71,7 @@ export default function Whiteboard({ timer, prompt, isLocked, onLock }: Whiteboa
             <div className="relative w-full mx-1">
                 <ProgressBar
                     className="w-3/4 min-h-[12px] bg-white border-2 border-black rounded-lg mt-4"
-                    duration={100000}
+                    duration={timeLeft}
                     onComplete={handleLockClick}
                 />
 
