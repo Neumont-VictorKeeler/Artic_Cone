@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useEffect } from "react";
 import Canvas from "@/components/canvas";
-import Lockscreen from "@/components/Lockscreen";
+import Lockscreen from "@/components/lockscreen";
 import { ProgressBar } from "@/components/ProgressBar";
 import { Button } from "@/components/ui/button";
 
@@ -10,22 +10,25 @@ interface WhiteboardProps {
     timer: number;
     prompt: string;
     isLocked: boolean;
-    onLock: () => void;
+    onLock: (imageData: string) => void;
 }
 
 export default function Whiteboard({ timer, prompt, isLocked, onLock }: WhiteboardProps) {
     const canvasRef = useRef<any>(null);
+    const [timeLeft, setTimeLeft] = useState(timer);
 
     useEffect(() => {
         if (timeLeft <= 0) {
-            onLock();
+            const imageData = canvasRef.current?.getIMG();
+            onLock(imageData);
             return;
         }
 
         const interval = setInterval(() => {
             setTimeLeft((prev) => {
                 if (prev <= 1) {
-                    onLock();
+                    const imageData = canvasRef.current?.getIMG();
+                    onLock(imageData);
                     return 0;
                 }
                 return prev - 1;
@@ -43,6 +46,11 @@ export default function Whiteboard({ timer, prompt, isLocked, onLock }: Whiteboa
         }
     }, [isLocked]);
 
+    const handleLockClick = () => {
+        const imageData = canvasRef.current?.getIMG();
+        onLock(imageData);
+    };
+
     return (
         <main className="w-full h-screen flex flex-col items-center overflow-hidden">
             <div className="flex bg-white shadow-lg rounded-lg justify-center p-4 w-3/4 max-w-lg text-center border-2 border-black m-2">
@@ -51,7 +59,7 @@ export default function Whiteboard({ timer, prompt, isLocked, onLock }: Whiteboa
 
             <Button
                 className={`w-3/4 ${isLocked ? "bg-blue-500" : "bg-red-500"} shadow-lg rounded-lg justify-center border-2 border-black m-1`}
-                onClick={onLock}
+                onClick={handleLockClick}
                 disabled={isLocked}
             >
                 {isLocked ? "Locked" : "Lock"}
@@ -61,7 +69,7 @@ export default function Whiteboard({ timer, prompt, isLocked, onLock }: Whiteboa
                 <ProgressBar
                     className="w-3/4 min-h-[12px] bg-white border-2 border-black rounded-lg mt-4"
                     duration={timeLeft}
-                    onComplete={onLock}
+                    onComplete={handleLockClick}
                 />
 
                 <div className="relative w-full">

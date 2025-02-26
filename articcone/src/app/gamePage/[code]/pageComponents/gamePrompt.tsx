@@ -6,7 +6,7 @@ import PromptInput from "@/components/PromptInput";
 
 interface GamePromptProps {
     timer: number;
-    onComplete: () => void;
+    onComplete: (promptValue: string) => void;
 }
 
 export default function GamePrompt({ timer, onComplete }: GamePromptProps) {
@@ -18,31 +18,31 @@ export default function GamePrompt({ timer, onComplete }: GamePromptProps) {
 
     useEffect(() => {
         if (timeLeft <= 0 && !locked) {
-            onComplete();
+            onComplete(promptValue);
             return;
         }
         const interval = setInterval(() => {
             setTimeLeft((prev) => {
                 if (prev <= 1) {
-                    onComplete();
+                    onComplete(promptValue);
                     return 0;
                 }
                 return prev - 1;
             });
         }, 1000);
         return () => clearInterval(interval);
-    }, [timeLeft, locked, onComplete]);
+    }, [timeLeft, locked, onComplete, promptValue]);
 
     const handleLockClick = () => {
         if (!locked) {
-            onComplete();
+            onComplete(promptValue);
         }
     };
 
     return (
         <main className="w-screen h-screen flex flex-col">
             <div className="m-3">
-                <ProgressBar duration={timeLeft} onComplete={onComplete} />
+                <ProgressBar duration={timeLeft} onComplete={handleLockClick} />
             </div>
 
             <img

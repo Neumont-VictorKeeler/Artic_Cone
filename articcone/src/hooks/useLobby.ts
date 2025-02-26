@@ -11,6 +11,7 @@ export interface Player {
     id: string;
     name: string;
     isHost: boolean;
+    locked?: boolean;
 }
 
 function useLobby(code: string | null) {
