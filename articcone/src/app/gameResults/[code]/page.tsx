@@ -14,7 +14,7 @@ const GameResultsPage = () => {
 
     useEffect(() => {
         if (!code) return;
-        const gameRef = ref(db, `lobbies/${code}/game`);
+        const gameRef = ref(db, `lobby/${code}/game`);
         const unsub = onValue(gameRef, (snapshot) => {
             if (!snapshot.exists()) {
                 toast.error("Game not found or deleted.");
