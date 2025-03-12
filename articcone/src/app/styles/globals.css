@@ -1,6 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 body {
   font-family: Arial, Helvetica, sans-serif;
   background: linear-gradient(to right, #93c5fd, #065f46, #93c5fd);
@@ -9,6 +10,7 @@ body {
   background-attachment: fixed;
   color: var(--foreground); /* Ensure text color matches the foreground color */
 }
+
 h1 {
   font-size: 2rem; /* Adjusted to a valid size */
   font-weight: bold;
@@ -90,4 +92,3 @@ p {
     @apply bg-background text-foreground;
   }
 }
-

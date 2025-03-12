@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { toast } from "react-hot-toast";
 import { ref, update, get, remove, onValue } from "firebase/database";
-import socket from "@/lib/socket";
 import useLobby from "@/hooks/useLobby";
 import LobbyHeader from "@/components/LobbyHeader";
 import PlayerList from "@/components/PlayerList";

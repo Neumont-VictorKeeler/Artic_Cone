@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useEffect, useState } from "react";
 import { ref, onValue, update } from "firebase/database";
 import { db } from "@/lib/firebase";
@@ -80,6 +79,30 @@ export default function GamePage() {
             router.push("/");
         }
     }, [game, myPlayerId, router]);
+
+    useEffect(() => {
+        socket.on("game_complete", ({ code }) => {
+            router.push(`/gameResults/${code}`);
+        });
+
+        return () => {
+            socket.off("game_complete");
+        };
+    }, [router]);
+
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === "visible" && game) {
+                const timeLeftInSeconds = convertTimestampToSeconds(game.timer);
+                setGame((prevGame) => prevGame ? { ...prevGame, timer: timeLeftInSeconds } : null);
+            }
+        };
+
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        return () => {
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+        };
+    }, [game]);
 
     if (isLoading || !game) {
         return <div className="flex items-center justify-center h-screen"><p>Loading...</p></div>;
@@ -174,7 +197,14 @@ export default function GamePage() {
         if (nextRound > totalRounds) {
             await update(ref(db, `lobbies/${code}/game`), {
                 phase: "complete",
+                round: totalRounds,
+                timer: 0,
+                lockedCount: 0,
             });
+
+            // Emit socket event to notify all players to navigate to the results page
+            socket.emit("game_complete", { code });
+
             router.push(`/gameResults/${code}`);
             return;
         }
@@ -198,7 +228,6 @@ export default function GamePage() {
             players: updatedPlayers,
         });
     };
-
 
     const timeLeftInSeconds = convertTimestampToSeconds(game.timer);
 
