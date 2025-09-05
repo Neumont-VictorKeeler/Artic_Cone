@@ -125,6 +125,8 @@ Artic Cone is built as a full-stack Next.js application with integrated real-tim
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📝 License
+## Author(s)
 
-This project is created for educational purposes.
+- [**Ethan Townsend (snxethan)**](www.ethantownsend.dev)
+- Victor Keeler
+- Jacob Brincefield
