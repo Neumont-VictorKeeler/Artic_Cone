@@ -127,6 +127,6 @@ Artic Cone is built as a full-stack Next.js application with integrated real-tim
 
 ## Author(s)
 
-- [**Ethan Townsend (snxethan)**](www.ethantownsend.dev)
+- [**Ethan Townsend (snxethan)**](https://www.ethantownsend.dev)
 - Victor Keeler
 - Jacob Brincefield
